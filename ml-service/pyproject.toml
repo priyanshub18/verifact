@@ -1,0 +1,16 @@
+[project]
+name = "verifact-ml-service"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "pydantic>=2.8", "pillow>=10", "numpy>=1.26", "python-multipart>=0.0.9"]
+[project.optional-dependencies]
+# heavy neural models: installed in the Docker image; optional for local dev
+models = ["torch>=2.3", "transformers>=4.44", "sentence-transformers>=3.0"]
+dev = ["pytest>=8", "httpx>=0.27"]
+[tool.pytest.ini_options]
+markers = ["models: needs torch + downloaded model weights"]
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+[tool.setuptools.packages.find]
+include = ["app*"]

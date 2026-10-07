@@ -1,0 +1,61 @@
+# Secrets: never commit real keys (.env.example is the committed template)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+frontend/.next
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local databases and runtime data
+*.db
+*.sqlite
+*.sqlite3
+dump.rdb
+uploads/
+media/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+
+# ML artifacts: model weights are downloaded, never committed
+.cache/
+huggingface/
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+*.bin
+
+# Eval: datasets are public downloads; generated reports are local
+eval/data/
+eval/datasets/
+eval/report*.json
+eval/reports/
+
+# Docker / infra overrides
+docker-compose.override.yml
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
