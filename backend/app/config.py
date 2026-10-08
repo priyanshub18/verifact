@@ -15,8 +15,8 @@ class Capability(BaseModel):
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=(".env", "../.env"), extra="ignore")
 
-    database_url: str = "postgresql+asyncpg://verifact:verifact@localhost:5432/verifact"
-    redis_url: str = "redis://localhost:6379/0"
+    database_url: str = "sqlite+aiosqlite:///./verifact.db"  # dev default; Docker Compose uses PostgreSQL
+    redis_url: str = ""  # empty = run jobs in-process (dev); Compose sets Redis + Arq worker
     cors_origins: str = "http://localhost:3000"
 
     llm_provider: str = "groq"  # default provider: groq | anthropic | openai (users can toggle per check in the UI)

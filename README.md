@@ -1,6 +1,8 @@
 # VeriFact
 
-Evidence-grounded verification of claims and media. **Status: milestone 1 of 7 (text/URL claim pipeline + evidence UI).**
+📚 **Docs:** [`docs/`](docs/README.md) (architecture, pipeline, API, ML service, evaluation, security, setup & demo). The same architecture and status board is in the app at `/architecture`.
+
+Evidence-grounded verification of claims and media. **Status: milestone 1 of 7 (text/URL claim pipeline + evidence UI), plus real ml-service and eval tooling. Free-first: Groq + keyless sources by default; Anthropic/OpenAI/Tavily/Brave code is kept and switchable in the UI.**
 Everything not listed as working below is _not implemented_, and the UI says so rather than faking it.
 
 ## Architecture
@@ -19,7 +21,7 @@ The LLM only reads retrieved passages. Stance judgements whose quote is not foun
 ## Run
 
 ```bash
-cp .env.example .env            # add at least ANTHROPIC_API_KEY (+ TAVILY_API_KEY or BRAVE_API_KEY)
+cp .env.example .env            # add GROQ_API_KEY (free); nothing else required
 docker compose -f infra/docker-compose.yml up --build      # UI :3000, API :8000
 ```
 
@@ -45,7 +47,7 @@ Without Docker: `cd backend && uv venv && uv pip install -e ".[dev]" && DATABASE
 
 ## Verification status (honest)
 
-- Verified by running: 21 offline tests pass, plus the keyless live Wikipedia/PubMed test; real Wikipedia/PubMed/page-fetch/SSRF-block checked live; frontend typechecks and builds; API returns 503 "not configured" without keys.
-- **Not verified:** the LLM paths (extraction, query planning, stance) and Tavily/Brave/Google Fact Check adapters have never run against the real APIs: no keys were available when this was built. The structured-output request shape follows the Anthropic docs but is untested live. No accuracy numbers exist yet; none are claimed.
-- The Evidence Board and verdict UI have not been exercised with a real result.
+- **Verified by running:** backend 26 offline tests (+1 skipped live test); ml-service 6 forensics tests and 2 model tests on real downloaded weights (reranker and NLI behave correctly); eval metric tests (5); live Wikipedia, PubMed, GDELT, DuckDuckGo/Bing and page fetch; SSRF blocks; frontend typecheck, production build and a screenshot of `/architecture`; API returns 503 `not_configured` for a provider without a key.
+- **Not verified:** the LLM paths (claim extraction, query planning, stance) have **never run against a real Groq/Anthropic/OpenAI response** because no working key was loaded when this was built. The Groq request/retry logic is covered by mocked-HTTP tests only. Tavily/Brave/Google Fact Check adapters are likewise untested live. The Evidence Board and verdict UI have not been rendered with a real result.
+- **No accuracy numbers exist.** The eval harness is built and tested, but no benchmark has been run.
 - Confidence is an uncalibrated heuristic and is labelled so.
