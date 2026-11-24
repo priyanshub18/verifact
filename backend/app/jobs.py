@@ -1,5 +1,6 @@
 """Job execution: Arq worker when REDIS_URL is set, otherwise in-process (dev). Events persist to the DB row."""
 import asyncio
+from pathlib import Path
 import uuid
 
 import structlog
@@ -27,16 +28,27 @@ async def run_check(ctx, check_id: str) -> None:
         row = await db.get(CheckRow, check_id)
         row.status = "running"
         text, url, provider = row.input_text, row.input_url, row.provider
+        img_path, img_mime, img_name = row.input_image_path, row.input_image_mime, row.input_image_name
         await db.commit()
+
+    image_bytes: bytes | None = None
+    if img_path:
+        p = Path(img_path)
+        if p.exists():
+            image_bytes = p.read_bytes()
+
     try:
         llm = build_llm(s, provider)
-        result = await Pipeline(s, llm, emit).run(check_id, text, url)
+        result = await Pipeline(s, llm, emit).run(
+            check_id, text, url,
+            image_bytes=image_bytes, image_mime=img_mime, image_name=img_name,
+        )
         status, payload = result.status, result.model_dump(mode="json")
     except LLMNotConfigured as e:
         status, payload = "failed", {"errors": [str(e)]}
     except Exception as e:  # noqa: BLE001 - surface to the user, never fabricate a result
         log.exception("check_failed", check_id=check_id)
-        status, payload = "failed", {"errors": [f"Internal error: {type(e).__name__}"]}
+        status, payload = "failed", {"errors": [f"Internal error: {type(e).__name__}: {str(e)[:200]}"]}
         await emit({"step": "error", "status": "failed", "detail": payload["errors"][0], "data": {}})
     async with sm() as db:
         row = await db.get(CheckRow, check_id)
