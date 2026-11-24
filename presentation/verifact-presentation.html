@@ -1,0 +1,1588 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>VeriFact: Multimodal Fake Information Detector (18-Slide Presentation)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --navy: #14213d;
+        --ink: #1f2937;
+        --muted: #5b6475;
+        --dim: #8a92a3;
+        --line: #dfe3ea;
+        --soft: #f5f7fa;
+        --accent: #9b1c2c;
+        --accent-soft: #fbeef0;
+        --blue: #1d4e89;
+        --blue-soft: #eaf1fa;
+        --green: #1e7a4f;
+        --green-soft: #e9f6ef;
+        --gold: #b7791f;
+        --gold-soft: #fbf4e6;
+        --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+        --sans: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #e8ebf0;
+        color: var(--ink);
+        font-family: var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+      }
+
+      /* ---------- chrome ---------- */
+      #viewport {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+      }
+      #stage {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 1280px;
+        height: 720px;
+        transform-origin: center;
+        background: #fff;
+        box-shadow: 0 12px 40px rgba(20, 33, 61, 0.16);
+        overflow: hidden;
+      }
+      footer {
+        flex: none;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 20px;
+        background: #fff;
+        border-top: 1px solid var(--line);
+      }
+      .btn {
+        height: 34px;
+        min-width: 36px;
+        padding: 0 12px;
+        border: 1px solid #cdd3dd;
+        border-radius: 7px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--navy);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn:hover {
+        border-color: var(--navy);
+        background: var(--soft);
+      }
+      .btn.on {
+        background: var(--navy);
+        color: #fff;
+        border-color: var(--navy);
+      }
+      .btn svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
+      #prog {
+        flex: 1;
+        display: flex;
+        gap: 3px;
+        align-items: center;
+      }
+      #prog .seg {
+        flex: var(--n);
+        height: 6px;
+        border-radius: 3px;
+        background: #e3e7ee;
+        overflow: hidden;
+        cursor: pointer;
+      }
+      #prog .seg i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--navy);
+        transition: width 0.3s;
+      }
+      #count {
+        font-size: 14px;
+        color: var(--muted);
+        min-width: 64px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      #notes {
+        position: fixed;
+        left: 20px;
+        bottom: 68px;
+        width: min(580px, calc(100vw - 40px));
+        background: #fff;
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--accent);
+        border-radius: 8px;
+        padding: 14px 16px;
+        font-size: 16px;
+        line-height: 1.55;
+        color: var(--ink);
+        box-shadow: 0 12px 32px rgba(20, 33, 61, 0.18);
+        z-index: 20;
+      }
+      #notes small {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 4px;
+      }
+      #menu {
+        position: fixed;
+        right: 20px;
+        bottom: 68px;
+        width: min(420px, calc(100vw - 40px));
+        max-height: 72vh;
+        overflow: auto;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px;
+        box-shadow: 0 12px 32px rgba(20, 33, 61, 0.18);
+        z-index: 21;
+      }
+      #menu button {
+        display: flex;
+        gap: 10px;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        background: none;
+        padding: 8px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14.5px;
+      }
+      #menu button:hover {
+        background: var(--soft);
+      }
+      #menu button.cur {
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-weight: 600;
+      }
+      #menu span {
+        color: var(--dim);
+        min-width: 24px;
+        font-variant-numeric: tabular-nums;
+      }
+      #help {
+        position: fixed;
+        right: 20px;
+        bottom: 68px;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px 18px;
+        font-size: 14px;
+        line-height: 2;
+        color: var(--muted);
+        box-shadow: 0 12px 32px rgba(20, 33, 61, 0.18);
+        z-index: 22;
+      }
+      kbd {
+        font: 500 12px var(--mono);
+        border: 1px solid #cdd3dd;
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        padding: 1px 6px;
+        color: var(--ink);
+        background: var(--soft);
+      }
+      body.fs {
+        background: #fff;
+      }
+      body.fs footer,
+      body.fs #notes,
+      body.fs #menu,
+      body.fs #help {
+        display: none !important;
+      }
+      body.fs #stage {
+        box-shadow: none;
+      }
+      @media (max-width: 700px) {
+        .btn .t {
+          display: none;
+        }
+      }
+
+      /* ---------- slide layout ---------- */
+      .slide {
+        position: absolute;
+        inset: 0;
+        padding: 40px 68px 66px 80px;
+        display: flex;
+        flex-direction: column;
+      }
+      .slide::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 12px;
+        background: var(--navy);
+      }
+      .head {
+        flex: none;
+      }
+      .kicker {
+        font: 700 13px/1 var(--sans);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .title {
+        font: 600 34px/1.15 var(--serif);
+        color: var(--navy);
+        margin: 8px 0 0;
+        letter-spacing: -0.01em;
+      }
+      .rule {
+        height: 2px;
+        background: var(--line);
+        margin-top: 12px;
+        position: relative;
+      }
+      .rule::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 2px;
+        width: 90px;
+        background: var(--accent);
+      }
+      .body {
+        flex: 1;
+        min-height: 0;
+        margin-top: 20px;
+        overflow: hidden;
+      }
+      .sfoot {
+        position: absolute;
+        left: 80px;
+        right: 68px;
+        bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        color: var(--dim);
+        border-top: 1px solid var(--line);
+        padding-top: 8px;
+      }
+
+      .two {
+        display: grid;
+        grid-template-columns: 540px 1fr;
+        gap: 36px;
+        height: 100%;
+        align-items: center;
+      }
+      .two-shot {
+        display: grid;
+        grid-template-columns: 650px 1fr;
+        gap: 30px;
+        height: 100%;
+        align-items: start;
+      }
+      .two-eq {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        height: 100%;
+        align-items: start;
+      }
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: 13px;
+        min-width: 0;
+      }
+      .row2 {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+      }
+      .row3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+      }
+      .row4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+      }
+
+      /* reveal */
+      .r {
+        opacity: 0;
+        transform: translateY(10px);
+        transition:
+          opacity 0.5s ease,
+          transform 0.5s ease;
+      }
+      .r.on {
+        opacity: 1;
+        transform: none;
+      }
+      svg .r {
+        transform: none;
+      }
+      .instant,
+      .instant * {
+        transition: none !important;
+      }
+
+      /* screenshot browser frame */
+      .shot-frame {
+        border: 1px solid #cbd3df;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #0a0c0b;
+        box-shadow: 0 10px 26px rgba(20, 33, 61, 0.14);
+        display: flex;
+        flex-direction: column;
+      }
+      .shot-bar {
+        height: 26px;
+        background: #171c1a;
+        border-bottom: 1px solid #2b3430;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 10px;
+      }
+      .shot-bar i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        background: #3d4843;
+      }
+      .shot-bar i:nth-child(1) { background: #ff6b57; }
+      .shot-bar i:nth-child(2) { background: #ffb83c; }
+      .shot-bar i:nth-child(3) { background: #5ed6a0; }
+      .shot-bar span {
+        margin-left: 8px;
+        font: 500 11px var(--mono);
+        color: #9ba79e;
+      }
+      .shot-frame img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: 446px;
+        object-fit: contain;
+        object-position: top center;
+        background: #0a0c0b;
+      }
+
+      /* text blocks */
+      .lead {
+        font-size: 19px;
+        line-height: 1.5;
+        color: var(--ink);
+        margin: 0;
+      }
+      .small {
+        font-size: 14.5px;
+        color: var(--muted);
+        line-height: 1.48;
+        margin: 0;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px 18px;
+        background: #fff;
+      }
+      .card.tint {
+        background: var(--soft);
+      }
+      .card h3 {
+        font: 600 19.5px/1.25 var(--serif);
+        color: var(--navy);
+        margin: 0 0 6px;
+      }
+      .card p {
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.48;
+        color: var(--ink);
+      }
+      .card .tag {
+        display: inline-block;
+        font: 700 11.5px var(--sans);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 6px;
+      }
+      .callout {
+        border-left: 4px solid var(--accent);
+        background: var(--accent-soft);
+        padding: 12px 16px;
+        border-radius: 0 8px 8px 0;
+        font-size: 16.5px;
+        line-height: 1.45;
+      }
+      .callout.blue {
+        border-color: var(--blue);
+        background: var(--blue-soft);
+      }
+      .callout.green {
+        border-color: var(--green);
+        background: var(--green-soft);
+      }
+      .callout.gold {
+        border-color: var(--gold);
+        background: var(--gold-soft);
+      }
+      .stat {
+        text-align: left;
+      }
+      .stat .num {
+        font: 700 38px/1.05 var(--serif);
+        color: var(--navy);
+      }
+      .stat .lab {
+        font-size: 16px;
+        line-height: 1.4;
+        margin-top: 8px;
+      }
+      .stat .src {
+        font-size: 12.5px;
+        color: var(--dim);
+        margin-top: 6px;
+      }
+      .steprow {
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      .steprow .n {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: var(--navy);
+        color: #fff;
+        font: 700 15px var(--sans);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .steprow .n.acc { background: var(--accent); }
+      .steprow .n.blu { background: var(--blue); }
+      .steprow .n.grn { background: var(--green); }
+      .steprow div:last-child {
+        font-size: 16.5px;
+        line-height: 1.44;
+        padding-top: 4px;
+      }
+      .mono {
+        font-family: var(--mono);
+        font-size: 13.5px;
+        line-height: 1.65;
+        color: var(--ink);
+      }
+      .badge {
+        display: inline-block;
+        font: 700 12px var(--sans);
+        padding: 3px 10px;
+        border-radius: 99px;
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .badge.grey { background: var(--soft); color: var(--muted); }
+      .badge.blue { background: var(--blue-soft); color: var(--blue); }
+      .badge.green { background: var(--green-soft); color: var(--green); }
+      .badge.gold { background: var(--gold-soft); color: var(--gold); }
+
+      /* tables */
+      table.mat {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 14.5px;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      table.mat th,
+      table.mat td {
+        border: 1px solid var(--line);
+        padding: 8px 11px;
+        text-align: left;
+      }
+      table.mat th {
+        background: var(--soft);
+        color: var(--navy);
+        font-weight: 700;
+      }
+      table.mat td.hi {
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-weight: 700;
+      }
+      table.mat td.ok {
+        background: var(--green-soft);
+        color: var(--green);
+        font-weight: 700;
+      }
+      table.mat td.warn {
+        background: var(--gold-soft);
+        color: #8a560e;
+        font-weight: 700;
+      }
+
+      /* bars */
+      .brow {
+        display: grid;
+        grid-template-columns: 165px 1fr 52px;
+        gap: 10px;
+        align-items: center;
+        height: 31px;
+      }
+      .brow .lab {
+        font-size: 14.5px;
+        font-weight: 600;
+        text-align: right;
+        white-space: nowrap;
+      }
+      .brow .track {
+        height: 16px;
+        background: var(--soft);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .brow .bar {
+        height: 100%;
+        width: 0;
+        background: var(--navy);
+        border-radius: 4px;
+        transition: width 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      .brow .bar.b2 { background: var(--blue); }
+      .brow .bar.bg { background: var(--green); }
+      .brow .bar.ba { background: var(--accent); }
+      .brow .bar.bo { background: var(--gold); }
+      .brow .val {
+        font: 600 14.5px var(--mono);
+        color: var(--navy);
+      }
+
+      /* pipeline boxes */
+      .pbox {
+        border: 1px solid var(--line);
+        border-top: 4px solid var(--navy);
+        border-radius: 8px;
+        padding: 15px 16px;
+        background: #fff;
+        position: relative;
+        height: 100%;
+      }
+      .pbox.acc { border-top-color: var(--accent); }
+      .pbox.blu { border-top-color: var(--blue); }
+      .pbox.grn { border-top-color: var(--green); }
+      .pbox .k {
+        font: 700 12px var(--sans);
+        letter-spacing: 0.12em;
+        color: var(--accent);
+      }
+      .pbox h3 {
+        font: 600 19px var(--serif);
+        color: var(--navy);
+        margin: 5px 0 7px;
+      }
+      .pbox p {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.44;
+      }
+      .pbox:not(:last-child)::after {
+        content: "→";
+        position: absolute;
+        right: -14px;
+        top: 44%;
+        font-size: 19px;
+        color: var(--dim);
+      }
+
+      /* cover */
+      .cover {
+        padding: 0;
+      }
+      .cover .wrap {
+        position: absolute;
+        left: 92px;
+        top: 0;
+        bottom: 0;
+        width: 615px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .cover .ck {
+        font: 700 14px var(--sans);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .cover h1 {
+        font: 600 50px/1.08 var(--serif);
+        color: var(--navy);
+        margin: 16px 0 0;
+        letter-spacing: -0.015em;
+      }
+      .cover .sub {
+        font-size: 20.5px;
+        line-height: 1.45;
+        color: var(--muted);
+        margin: 18px 0 0;
+      }
+      .cover .who {
+        margin-top: 34px;
+        padding-top: 18px;
+        border-top: 2px solid var(--line);
+        font-size: 16px;
+        line-height: 1.55;
+      }
+      .cover .who-label {
+        font: 700 11px var(--mono);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 10px;
+      }
+      .cover .team {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .cover .member {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        background: var(--soft);
+        font: 600 17px var(--serif);
+        color: var(--navy);
+      }
+      .cover .member i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        display: inline-block;
+      }
+      .cover .art {
+        position: absolute;
+        right: 54px;
+        top: 120px;
+        width: 470px;
+      }
+      .cover .sfoot {
+        display: none;
+      }
+
+      /* compact svg */
+      svg.diag {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewport"><div id="stage"></div></div>
+
+    <footer>
+      <button class="btn" id="bPrev" title="Previous (←)">
+        <svg viewBox="0 0 24 24">
+          <path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4-4.6-4.6z" /></svg
+        ><span class="t">Prev</span>
+      </button>
+      <button class="btn" id="bNext" title="Next (Space / →)">
+        <span class="t">Next</span
+        ><svg viewBox="0 0 24 24">
+          <path d="M10 6 8.6 7.4l4.6 4.6-4.6 4.6L10 18l6-6z" />
+        </svg>
+      </button>
+      <div id="prog"></div>
+      <div id="count"></div>
+      <button class="btn" id="bMenu" title="Slides (M)"><span>Slides</span></button>
+      <button class="btn" id="bNotes" title="Speaker notes (N)"><span>Notes</span></button>
+      <button class="btn" id="bFull" title="Fullscreen (F)">
+        <svg viewBox="0 0 24 24">
+          <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" /></svg
+        ><span class="t">Fullscreen</span>
+      </button>
+      <button class="btn" id="bHelp" title="Shortcuts (?)">?</button>
+    </footer>
+
+    <div id="notes" hidden></div>
+    <div id="menu" hidden></div>
+    <div id="help" hidden>
+      <div><kbd>Space</kbd> <kbd>→</kbd> next &nbsp; <kbd>←</kbd> back</div>
+      <div><kbd>F</kbd> fullscreen &nbsp; <kbd>Esc</kbd> exit</div>
+      <div><kbd>N</kbd> speaker notes &nbsp; <kbd>M</kbd> slide list</div>
+      <div><kbd>Home</kbd> first &nbsp; <kbd>End</kbd> last</div>
+    </div>
+
+    <script>
+      function bars(el) {
+        el.querySelectorAll(".bar[data-w]").forEach((b) => (b.style.width = b.dataset.w + "%"));
+      }
+
+      const shot = (src, title, maxH = 446) => `
+        <div class="shot-frame">
+          <div class="shot-bar"><i></i><i></i><i></i><span>${title}</span></div>
+          <img src="${src}" alt="${title}" style="max-height:${maxH}px" />
+        </div>`;
+
+      // Reusable 3-Pillar Multimodal SVG diagram
+      const PILLARS_SVG = `
+        <svg class="diag" viewBox="0 0 540 390" role="img" aria-label="3-pillar multimodal verification flow">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0 0L10 5L0 10z" fill="#14213d"/>
+            </marker>
+          </defs>
+          <!-- Input Node -->
+          <rect x="135" y="10" width="270" height="58" rx="10" fill="#14213d"/>
+          <text x="270" y="34" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="Source Sans 3, sans-serif">USER INPUT</text>
+          <text x="270" y="54" text-anchor="middle" fill="#cbd5e1" font-size="12.5" font-family="JetBrains Mono, monospace">Image (JPG/PNG/WebP) + Claim</text>
+
+          <!-- Arrows down -->
+          <path d="M180 68 L85 112" stroke="#14213d" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+          <path d="M270 68 L270 112" stroke="#14213d" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+          <path d="M360 68 L455 112" stroke="#14213d" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+
+          <!-- Pillar 1 -->
+          <g class="r" data-s="0">
+            <rect x="8" y="116" width="160" height="126" rx="9" fill="#fbeef0" stroke="#9b1c2c" stroke-width="2"/>
+            <text x="88" y="140" text-anchor="middle" fill="#9b1c2c" font-size="11.5" font-weight="700">PILLAR 1</text>
+            <text x="88" y="162" text-anchor="middle" fill="#14213d" font-size="15.5" font-weight="700" font-family="Source Serif 4, serif">Is Image Real?</text>
+            <text x="88" y="185" text-anchor="middle" fill="#374151" font-size="12">EXIF / C2PA / AI tags</text>
+            <text x="88" y="203" text-anchor="middle" fill="#374151" font-size="12">ELA &amp; Noise Heatmaps</text>
+            <text x="88" y="221" text-anchor="middle" fill="#374151" font-size="12">FFT + Visual Artifacts</text>
+          </g>
+
+          <!-- Pillar 2 -->
+          <g class="r" data-s="1">
+            <rect x="190" y="116" width="160" height="126" rx="9" fill="#fbf4e6" stroke="#b7791f" stroke-width="2"/>
+            <text x="270" y="140" text-anchor="middle" fill="#b7791f" font-size="11.5" font-weight="700">PILLAR 2</text>
+            <text x="270" y="162" text-anchor="middle" fill="#14213d" font-size="15.5" font-weight="700" font-family="Source Serif 4, serif">Do They Match?</text>
+            <text x="270" y="185" text-anchor="middle" fill="#374151" font-size="12">Vision Scene Analysis</text>
+            <text x="270" y="203" text-anchor="middle" fill="#374151" font-size="12">OCR Signage &amp; Text</text>
+            <text x="270" y="221" text-anchor="middle" fill="#374151" font-size="12">Web Provenance Leads</text>
+          </g>
+
+          <!-- Pillar 3 -->
+          <g class="r" data-s="2">
+            <rect x="372" y="116" width="160" height="126" rx="9" fill="#eaf1fa" stroke="#1d4e89" stroke-width="2"/>
+            <text x="452" y="140" text-anchor="middle" fill="#1d4e89" font-size="11.5" font-weight="700">PILLAR 3</text>
+            <text x="452" y="162" text-anchor="middle" fill="#14213d" font-size="15.5" font-weight="700" font-family="Source Serif 4, serif">Is Claim Real?</text>
+            <text x="452" y="185" text-anchor="middle" fill="#374151" font-size="12">Confirm + Disconfirm</text>
+            <text x="452" y="203" text-anchor="middle" fill="#374151" font-size="12">Verbatim Quote Check</text>
+            <text x="452" y="221" text-anchor="middle" fill="#374151" font-size="12">NLI + Credibility Rules</text>
+          </g>
+
+          <!-- Arrows to Fusion -->
+          <g class="r" data-s="3">
+            <path d="M88 242 L205 292" stroke="#14213d" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+            <path d="M270 242 L270 292" stroke="#14213d" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+            <path d="M452 242 L335 292" stroke="#14213d" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+            <rect x="42" y="296" width="456" height="78" rx="10" fill="#e9f6ef" stroke="#1e7a4f" stroke-width="2.2"/>
+            <text x="270" y="324" text-anchor="middle" fill="#1e7a4f" font-size="12" font-weight="700">DETERMINISTIC MULTIMODAL FUSION</text>
+            <text x="270" y="346" text-anchor="middle" fill="#14213d" font-size="16" font-weight="700" font-family="Source Serif 4, serif">Fused Verdict + Transparent Audit Trail</text>
+            <text x="270" y="365" text-anchor="middle" fill="#4b5563" font-size="10.5" font-family="JetBrains Mono, monospace">AI-Generated · Manipulated · False · Mixed · True · Unverifiable</text>
+          </g>
+        </svg>`;
+
+      // ============================================================ 18 SLIDES
+      const S = [];
+
+      // SLIDE 1: Cover
+      S.push({
+        cover: true,
+        name: "Title",
+        body: `
+          <div class="wrap">
+            <div class="ck r" data-s="0">Multimodal Verification · Software Project Presentation</div>
+            <h1 class="r" data-s="0">VeriFact:<br>Fake Information Detector</h1>
+            <p class="sub r" data-s="0">Evidence-grounded verification of <b>images and claims</b> — checking whether the image is authentic, whether it matches the claim, and whether the claim itself is real.</p>
+            <div class="who r" data-s="1">
+              <div class="who-label">Presented By</div>
+              <div class="team">
+                <span class="member"><i></i>Priyanshu</span>
+                <span class="member"><i></i>Suryansh</span>
+                <span class="member"><i></i>Tanvi</span>
+              </div>
+              <div style="color:var(--ink);font-weight:600">B.Tech Computer Science &amp; Engineering · NIT Jalandhar</div>
+              <div style="color:var(--muted);font-size:14.5px;margin-top:2px">November 2026 · Next.js · FastAPI · Vision LLM · ML Forensics</div>
+            </div>
+          </div>
+          <div class="art r" data-s="0">
+            ${shot("assets/03-dashboard-ai-verdict.png", "verifact.app · Live Multimodal Verdict Dashboard", 460)}
+          </div>`,
+        steps: [
+          { note: "Welcome everyone. Today I'm presenting VeriFact — an end-to-end multimodal fake information detector that takes an image and a claim about that image, and verifies both." },
+          { note: "Notice the real VeriFact dashboard preview on the right: instead of a black-box score, VeriFact separates image authenticity, image-claim matching, and web-grounded claim verification." },
+        ],
+      });
+
+      // SLIDE 2: Agenda
+      S.push({
+        name: "Presentation outline",
+        kicker: "Overview",
+        title: "What we will cover today",
+        body: `
+          <div class="row2" style="gap:20px;align-content:start">
+            <div class="card r" data-s="0"><span class="tag">Part 1 · Slides 3–5</span><h3>Problem &amp; 3-Pillar Architecture</h3><p>Why text-only fact-checkers fail on visual misinformation, VeriFact's 3-pillar verification model, and the full-stack system topology.</p></div>
+            <div class="card r" data-s="1"><span class="tag">Part 2 · Slides 6–11</span><h3>Forensics, Vision &amp; Evidence Engine</h3><p>Image upload &amp; magic-byte intake, EXIF/C2PA/ELA/noise forensics, vision-model consistency checks, retrieval-first stance scoring, and deterministic fusion.</p></div>
+            <div class="card r" data-s="2"><span class="tag">Part 3 · Slides 12–16</span><h3>Real Dashboard Walkthroughs &amp; Demo</h3><p>Live screenshots of two multimodal cases (an AI/doctored disaster hoax and a real photo used out of context) plus our zero-API hardcoded interactive demo.</p></div>
+            <div class="card r" data-s="3"><span class="tag">Part 4 · Slides 17–18</span><h3>Security, Verification &amp; Roadmap</h3><p>SSRF protection, automated test coverage, live Groq verification results, honest limitations, and future milestones.</p></div>
+          </div>`,
+        steps: [
+          { note: "We start with why visual misinformation breaks text-only detectors and how VeriFact structures verification into three clear questions." },
+          { note: "In Part 2, we walk through the complete technical pipeline: pixel forensics, vision inspection, retrieval-first fact checking, and deterministic fusion." },
+          { note: "In Part 3, we inspect real screenshots captured directly from our running VeriFact dashboards and our instant hardcoded demo mode." },
+          { note: "Finally, we cover security hardening, test verification, honest limitations, and next steps." },
+        ],
+      });
+
+      // SLIDE 3: The Problem
+      S.push({
+        name: "Visual misinformation problem",
+        kicker: "Part 1 · Motivation",
+        title: "Why visual misinformation breaks text-only fact-checkers",
+        body: `
+          <div class="col" style="gap:20px">
+            <div class="row3">
+              <div class="card tint r" data-s="0">
+                <span class="tag">Failure Mode 1</span>
+                <h3>AI-Generated Media</h3>
+                <p>Synthetic images of fake disasters or events look photorealistic at a glance and carry no prior news record.</p>
+              </div>
+              <div class="card tint r" data-s="1">
+                <span class="tag">Failure Mode 2</span>
+                <h3>Manipulated / Spliced</h3>
+                <p>Authentic landmarks edited with added flames, crowds, or forged signage — mixing real backgrounds with fake details.</p>
+              </div>
+              <div class="card tint r" data-s="2">
+                <span class="tag">Failure Mode 3</span>
+                <h3>Real Photo, Wrong Context</h3>
+                <p>An <b>unaltered genuine photo</b> from years ago reposted with a false location or breaking-news caption.</p>
+              </div>
+            </div>
+            <div class="callout blue r" data-s="3"><b>Core Insight:</b> Checking only the image misses out-of-context captions. Checking only the text misses manipulated or synthetic visuals. Both must be verified together.</div>
+            <div class="callout r" data-s="4"><b>VeriFact's Design Goal:</b> Never ask an LLM to guess from memory. Ground every claim in retrieved sources, pair every image with transparent forensic heatmaps, and report <i>Unverifiable</i> when evidence is missing.</div>
+          </div>`,
+        steps: [
+          { note: "Modern misinformation is overwhelmingly multimodal: an image paired with a provocative claim. First, generative AI lets anyone fabricate dramatic scenes in seconds." },
+          { note: "Second, classic photo splicing edits fake smoke, crowds, or signs into real locations." },
+          { note: "Third — and most common in practice — is a completely authentic old photo reposted with a false date or location." },
+          { note: "This means an image-only detector fails on out-of-context photos, while a text-only fact-checker cannot tell if the attached image is synthetic or contradicts the caption." },
+          { note: "VeriFact solves this by combining deterministic forensics, vision alignment, and retrieval-first web evidence — while staying strictly honest about uncertainty." },
+        ],
+      });
+
+      // SLIDE 4: 3-Pillar Verification Model
+      S.push({
+        name: "3-pillar verification model",
+        kicker: "Part 1 · Core Concept",
+        title: "Three independent questions behind every verdict",
+        body: `
+          <div class="two">
+            <div>${PILLARS_SVG}</div>
+            <div class="col">
+              <div class="steprow r" data-s="0"><div class="n acc">1</div><div><b>Is the Image Real?</b> Runs EXIF/C2PA metadata scanning, Error Level Analysis (ELA), noise residual heatmaps, 2D FFT spectral cues, and vision artifact inspection.</div></div>
+              <div class="steprow r" data-s="1"><div class="n" style="background:var(--gold)">2</div><div><b>Does the Image Match the Claim?</b> Vision LLM compares visible subjects, landmarks, and OCR text against the user's claim, reinforced by web provenance searches.</div></div>
+              <div class="steprow r" data-s="2"><div class="n blu">3</div><div><b>Is the Claim Factually Real?</b> Runs confirming &amp; disconfirming queries across web, news, Wikipedia, scholarly &amp; fact-check indexes with mandatory verbatim quotes.</div></div>
+              <div class="callout green r" data-s="3"><b>Deterministic Fusion:</b> Fixed, inspectable rules combine all three pillars into an overall verdict without black-box LLM voting.</div>
+            </div>
+          </div>`,
+        steps: [
+          { note: "When a user uploads an image and enters a claim, VeriFact splits the investigation into three independent pillars. Pillar 1 tests whether the image file itself shows editing or AI generation." },
+          { note: "Pillar 2 checks whether what is visibly depicted — including signs, storefronts, and OCR text — actually matches the user's caption." },
+          { note: "Pillar 3 verifies the underlying factual claim against independent web, wire, government, and fact-checking sources." },
+          { note: "Finally, a deterministic fusion layer merges the three answers into one overall verdict and displays all three pillars side-by-side." },
+        ],
+      });
+
+      // SLIDE 5: System Architecture (Real Screenshot)
+      S.push({
+        name: "System architecture",
+        kicker: "Part 1 · Engineering Topology",
+        title: "Full-stack system topology (from /architecture)",
+        body: `
+          <div class="two-shot">
+            <div class="r" data-s="0">${shot("assets/07-architecture.png", "localhost:3000/architecture · Live System Diagram", 438)}</div>
+            <div class="col">
+              <div class="card r" data-s="1"><span class="tag">Frontend · Next.js 15 + TypeScript</span><h3>Reactive Evidence UI</h3><p>Tailwind + Framer Motion + custom accessible SVG Evidence Board. Subscribes over Server-Sent Events (SSE) for real-time step updates.</p></div>
+              <div class="card tint r" data-s="2"><span class="tag">Backend · FastAPI + Async Worker</span><h3>API &amp; Orchestration</h3><p>Multipart image + claim intake, SQLAlchemy (Postgres with automatic SQLite dev fallback), Arq/Redis queue with zero-dependency in-process fallback.</p></div>
+              <div class="card r" data-s="3"><span class="tag">ML Service · PyTorch + Pillow</span><h3>Isolated Neural &amp; Forensics Container</h3><p>Lazy-loaded cross-encoder reranker, DeBERTa NLI model, and unified <code>/forensics/analyze</code> endpoint — with built-in local backend fallback.</p></div>
+            </div>
+          </div>`,
+        steps: [
+          { note: "Here is the real architecture diagram directly from our app's /architecture page. Notice the clean separation between Client, Your Infrastructure, and External Sources." },
+          { note: "The Next.js frontend submits multipart checks and streams persisted progress events over SSE, so refreshing the browser never loses progress." },
+          { note: "The FastAPI backend stores checks in PostgreSQL — and automatically falls back to SQLite and an in-process worker for zero-config local runs." },
+          { note: "Heavy neural weights (MiniLM cross-encoder and DeBERTa NLI) live in a dedicated ml-service container, while the backend also includes built-in local forensics so image checks always work." },
+        ],
+      });
+
+      // SLIDE 6: Multimodal Intake UI (Real Screenshot)
+      S.push({
+        name: "Multimodal intake UI",
+        kicker: "Part 2 · Step 1 — Ingest",
+        title: "Image + Claim composer & safe intake validation",
+        body: `
+          <div class="two-shot">
+            <div class="r" data-s="0">${shot("assets/01-hero-multimodal.png", "localhost:3000 · Multimodal Image + Claim Composer", 438)}</div>
+            <div class="col">
+              <div class="steprow r" data-s="1"><div class="n">1</div><div><b>Flexible Inputs:</b> Drag-and-drop, paste (<code>⌘V</code>), or browse an image paired with a claim — or submit image-only, text-only, or any URL.</div></div>
+              <div class="steprow r" data-s="2"><div class="n acc">2</div><div><b>Magic-Byte Sniffing:</b> Backend verifies binary headers (JPEG/PNG/WebP), rejecting spoofed extensions, files &gt;15 MB, or &gt;40 MP images with HTTP 422.</div></div>
+              <div class="steprow r" data-s="3"><div class="n blu">3</div><div><b>Provider Choice:</b> Free-first Groq (<code>qwen/qwen3.8-27b</code> supporting both text JSON and vision), with OpenAI and Anthropic selectable per check.</div></div>
+              <div class="callout green r" data-s="4"><b>Live Transparency:</b> Home screen displays live capability badges and recent investigation history.</div>
+            </div>
+          </div>`,
+        steps: [
+          { note: "This is the real VeriFact home composer loaded with an uploaded Eiffel Tower fire image and a viral breaking-news claim." },
+          { note: "Users can drag-and-drop, paste directly from clipboard, or browse for an image alongside their claim — or still run plain text or URL checks." },
+          { note: "On upload, the API never trusts file extensions: it sniffs raw magic bytes and enforces 15 MB and 40 megapixel safety bounds." },
+          { note: "Users can toggle between free-tier Groq (running Qwen3.8-27B for both vision and structured JSON) or paid OpenAI/Anthropic models." },
+          { note: "Every capability status and recent investigation is surfaced directly below the composer." },
+        ],
+      });
+
+      // SLIDE 7: Image Forensics Engine
+      S.push({
+        name: "Image forensics engine",
+        kicker: "Part 2 · Step 2 — Forensics",
+        title: "Four deterministic forensic layers inside the image lab",
+        body: `
+          <div class="col" style="gap:16px">
+            <div class="row2">
+              <div class="card r" data-s="0">
+                <span class="tag">Layer 1 · Metadata &amp; Provenance</span>
+                <h3>EXIF, C2PA &amp; AI-Generator Scan</h3>
+                <p>Parses camera make/model/timestamps, C2PA Content Credentials, and scans PNG/XMP/JPEG headers for Stable Diffusion, ComfyUI, Midjourney, DALL-E, Firefly &amp; Photoshop traces + SHA-256 &amp; perceptual dHash.</p>
+              </div>
+              <div class="card r" data-s="1">
+                <span class="tag">Layer 2 · Compression History</span>
+                <h3>Error Level Analysis (ELA)</h3>
+                <p>Recompresses at JPEG Q=90 and amplifies pixel residuals into a heatmap. Computes <code>block_error_cv</code>, <code>p99_error</code>, and <code>hot_block_fraction</code> to flag localized post-compression splices.</p>
+              </div>
+              <div class="card r" data-s="2">
+                <span class="tag">Layer 3 · Sensor Consistency</span>
+                <h3>Median Noise Residual</h3>
+                <p>Subtracts a 3×3 median-filtered image to isolate high-pass sensor noise across blocks (<code>block_noise_cv</code>), highlighting pasted regions with mismatched grain.</p>
+              </div>
+              <div class="card r" data-s="3">
+                <span class="tag">Layer 4 · Frequency Domain</span>
+                <h3>2D FFT Spectral &amp; RGB Correlation</h3>
+                <p>Measures outer-band radial FFT energy (<code>high_freq_ratio</code>) and pairwise high-pass R/G/B channel correlation to flag heavy smoothing or synthetic texture patterns.</p>
+              </div>
+            </div>
+            <div class="callout gold r" data-s="4"><b>Scientific Honesty:</b> Classical forensics are <b>probabilistic indicators, never standalone proof</b>. Social media platforms strip EXIF and recompress JPEGs — every result explicitly carries its limitations.</div>
+          </div>`,
+        steps: [
+          { note: "Once an image is accepted, VeriFact runs four deterministic forensic checks. First, metadata and provenance scanning inspects EXIF camera tags, C2PA markers, and embedded AI-generator or Photoshop signatures." },
+          { note: "Second, Error Level Analysis recompresses the image and measures where pixel error spikes unevenly — revealing patches edited after the original JPEG save." },
+          { note: "Third, a median-filter noise residual isolates high-frequency sensor grain to spot regions with inconsistent texture." },
+          { note: "Fourth, 2D Fast Fourier Transform spectral analysis and RGB channel correlation check for anomalous frequency rolloff." },
+          { note: "Crucially, VeriFact never pretends ELA alone is courtroom proof: every forensic panel explains how social-media recompression affects sensitivity." },
+        ],
+      });
+
+      // SLIDE 8: Vision Inspection & Provenance
+      S.push({
+        name: "Vision & image provenance",
+        kicker: "Part 2 · Step 3 — Visual Analysis",
+        title: "Vision inspection, OCR & image–claim alignment",
+        body: `
+          <div class="two-eq">
+            <div class="card r" data-s="0">
+              <span class="tag">Structured Vision Schema · VisualAnalysis</span>
+              <h3>What the Vision LLM inspects</h3>
+              <div class="col" style="margin-top:12px;gap:10px">
+                <div class="steprow"><div class="n blu">1</div><div><b>Objective Scene &amp; Entities:</b> People, landmarks, weather, architecture, and apparent era.</div></div>
+                <div class="steprow"><div class="n blu">2</div><div><b>Visible Text (OCR):</b> Shop signs, chyrons, banners, watermarks, or embedded meme claims.</div></div>
+                <div class="steprow"><div class="n acc">3</div><div><b>Observable Artifacts:</b> Warped hands, garbled text, lighting/shadow mismatch, or AI badges.</div></div>
+                <div class="steprow"><div class="n grn">4</div><div><b>Claim Alignment:</b> Classifies <code>consistent</code>, <code>partially_consistent</code>, <code>mismatched_context</code>, or <code>contradicts_image</code>.</div></div>
+              </div>
+            </div>
+            <div class="col" style="gap:14px">
+              <div class="card tint r" data-s="1">
+                <span class="tag">Visual Provenance &amp; Reverse-Context Search</span>
+                <h3>Tracing the photo across the web</h3>
+                <p>Using visual entities, OCR text, and claim keywords, VeriFact searches DuckDuckGo/Bing, Google Fact Check, optional Tavily/Brave, and optional Google Vision Web Detection to surface prior photo debunks.</p>
+              </div>
+              <div class="callout blue r" data-s="2"><b>Strict Pydantic Validation:</b> Every LLM reply strips reasoning tags (<code>&lt;think&gt;</code>) and validates against strict JSON schemas with automatic retry on malformed output.</div>
+              <div class="callout green r" data-s="3"><b>Embedded Meme Claims:</b> If a user uploads an image with <i>no typed claim</i>, VeriFact extracts checkable claims printed inside the image and fact-checks them automatically.</div>
+            </div>
+          </div>`,
+        steps: [
+          { note: "Next, VeriFact sends a safely resized image plus the technical metadata summary and user claim to the Vision LLM under a strict Pydantic VisualAnalysis schema." },
+          { note: "Using the extracted landmarks, OCR text, and entities, VeriFact runs visual-context provenance searches across web and fact-check indexes to catch previously debunked or recycled photos." },
+          { note: "All LLM responses — across Groq, OpenAI, and Anthropic — are stripped of reasoning tags and validated against strict JSON schemas with retry feedback." },
+          { note: "Even if a user uploads only a screenshot or meme without typing a caption, VeriFact automatically extracts and verifies factual claims printed inside the image." },
+        ],
+      });
+
+      // SLIDE 9: Retrieval-First Claim Pipeline
+      S.push({
+        name: "Claim verification pipeline",
+        kicker: "Part 2 · Step 4 — Evidence Grounding",
+        title: "Retrieval-first claim verification: zero memory guessing",
+        body: `
+          <div class="col" style="gap:18px;height:100%">
+            <div class="row4" style="height:178px">
+              <div class="pbox r" data-s="0"><div class="k">STAGE 1</div><h3>Extract Claims</h3><p>Split text into atomic checkable facts; ignore meta-claims like “this photo is real”; tag opinions &amp; sensitive topics.</p></div>
+              <div class="pbox blu r" data-s="1"><div class="k">STAGE 2</div><h3>Search Both Sides</h3><p>Plan confirming <b>and disconfirming</b> queries across DDG/Bing, GDELT, Wikipedia, PubMed, Crossref &amp; FactCheck.</p></div>
+              <div class="pbox acc r" data-s="2"><div class="k">STAGE 3</div><h3>Rank &amp; Dedupe</h3><p>SSRF-safe page fetch, 110-word chunking, BM25 or Cross-Encoder rerank, and 5-shingle syndication deduplication.</p></div>
+              <div class="pbox grn r" data-s="3"><div class="k">STAGE 4</div><h3>Stance + NLI</h3><p>LLM assigns <i>supports / refutes / neutral</i> with a mandatory <b>verbatim quote</b>, cross-checked by DeBERTa NLI.</p></div>
+            </div>
+            <div class="callout r" data-s="4"><b>Anti-Hallucination Rule:</b> Before a passage counts toward a verdict, VeriFact runs <code>quote_in_passage()</code>. If the LLM's cited quote does not appear verbatim (≥ 12 chars) inside the fetched text, that judgement is <b>automatically discarded</b>.</div>
+          </div>`,
+        steps: [
+          { note: "In parallel with image verification, VeriFact verifies the factual claim itself. Stage 1 splits text into atomic claims, tags opinions as Not Checkworthy, and skips meta-claims like 'this photo is real'." },
+          { note: "Stage 2 intentionally writes both confirming AND disconfirming queries (debunks, official data, corrections) and fans out across free keyless sources plus optional paid APIs." },
+          { note: "Stage 3 fetches pages through our SSRF-safe fetcher, ranks passages with BM25 or our MiniLM cross-encoder, and clusters syndicated wire copies (Jaccard ≥ 0.5) so one AP/Reuters story only votes once." },
+          { note: "Stage 4 classifies stance using only the retrieved passage — optionally cross-checked by a local DeBERTa NLI model that flags any disagreement." },
+          { note: "Most importantly: if the LLM fabricates a quote that isn't verbatim inside the retrieved passage, our code throws the judgement away." },
+        ],
+      });
+
+      // SLIDE 10: Credibility & Aggregation
+      S.push({
+        name: "Credibility & aggregation",
+        kicker: "Part 2 · Step 5 — Deterministic Rules",
+        title: "Transparent credibility priors & domain-independent aggregation",
+        body: `
+          <div class="two-eq">
+            <div class="card r" data-s="0">
+              <span class="tag">Rule-Based Domain Credibility Priors</span>
+              <div style="margin-top:6px">
+                <div class="brow"><div class="lab">Intergovernmental</div><div class="track"><div class="bar bg" data-w="88"></div></div><div class="val">0.88</div></div>
+                <div class="brow"><div class="lab">Wire / Fact-Check / Gov</div><div class="track"><div class="bar bg" data-w="85"></div></div><div class="val">0.85</div></div>
+                <div class="brow"><div class="lab">Scholarly / Academic</div><div class="track"><div class="bar b2" data-w="85"></div></div><div class="val">0.85</div></div>
+                <div class="brow"><div class="lab">University (.edu/.ac)</div><div class="track"><div class="bar b2" data-w="75"></div></div><div class="val">0.75</div></div>
+                <div class="brow"><div class="lab">Reference (Wikipedia)</div><div class="track"><div class="bar" data-w="60"></div></div><div class="val">0.60</div></div>
+                <div class="brow"><div class="lab">General News / Web</div><div class="track"><div class="bar bo" data-w="55"></div></div><div class="val">0.55</div></div>
+                <div class="brow"><div class="lab">User-Generated (Social)</div><div class="track"><div class="bar ba" data-w="25"></div></div><div class="val">0.25</div></div>
+                <div class="brow"><div class="lab">Known Satire Outlets</div><div class="track"><div class="bar ba" data-w="5"></div></div><div class="val">0.05</div></div>
+              </div>
+              <p class="small" style="margin-top:8px">Non-HTTPS penalized (−0.08); satire never counted; outdated passages down-weighted ×0.5.</p>
+            </div>
+            <div class="col" style="gap:13px">
+              <div class="card tint r" data-s="1">
+                <span class="tag">Deterministic Weighting Formula</span>
+                <div class="mono" style="margin-top:6px;padding:8px 10px;background:#fff;border-radius:6px">w(e) = cred(e) × (0.5 + 0.5 × rerank(e))<br>p = S / (S + R)</div>
+                <p class="small" style="margin-top:8px">Each counted source contributes weight proportional to both domain prior and passage relevance.</p>
+              </div>
+              <div class="steprow r" data-s="2"><div class="n acc">≥2</div><div><b>Independent Domains Required:</b> Standard claims need ≥ 2 distinct domains; sensitive topics (health, election, violence) need <b>≥ 3 domains</b> and receive a 0.85 strength haircut.</div></div>
+              <div class="callout blue r" data-s="3"><b>No Forced Verdicts:</b> Thin evidence (<code>S+R &lt; 0.9</code>) → <b>Unverifiable</b>. Credible conflict → <b>Disputed</b> with confidence set to <code>null</code>.</div>
+            </div>
+          </div>`,
+        steps: [
+          { note: "Every source receives a transparent, inspectable credibility prior — from 0.88 for intergovernmental bodies and 0.85 for wires, fact-checkers, governments and journals, down to 0.25 for social posts and 0.05 for satire.", run: (el) => bars(el) },
+          { note: "Each passage's vote equals its credibility times (0.5 + 0.5 × relevance). No LLM decides the final verdict." },
+          { note: "To prevent single-site echo chambers, verdicts require at least 2 independent domains — and 3 independent domains for sensitive topics like health, elections, and violence." },
+          { note: "If evidence is too thin, VeriFact outputs Unverifiable; if credible sources disagree, it reports Disputed with no single confidence number." },
+        ],
+      });
+
+      // SLIDE 11: Multimodal Fusion Matrix
+      S.push({
+        name: "Multimodal verdict fusion",
+        kicker: "Part 2 · Step 6 — Fusion Logic",
+        title: "Deterministic multimodal fusion: combining Image, Match & Claim",
+        body: `
+          <div class="col" style="gap:18px">
+            <table class="mat r" data-s="0">
+              <tr>
+                <th>Image Authenticity</th>
+                <th>Image–Claim Match</th>
+                <th>Claim Verification</th>
+                <th>Fused Overall Verdict</th>
+              </tr>
+              <tr>
+                <td><b>Likely AI-Generated</b> (metadata / vision / debunk)</td>
+                <td>Any</td>
+                <td>Any</td>
+                <td class="hi">◬ AI-Generated</td>
+              </tr>
+              <tr>
+                <td><b>Likely Manipulated</b> (editing + ELA/vision)</td>
+                <td>Any</td>
+                <td>Any</td>
+                <td class="hi">⚠ Manipulated Media</td>
+              </tr>
+              <tr>
+                <td><b>Likely Authentic</b> or Inconclusive</td>
+                <td><b>Contradicts Image</b></td>
+                <td>Any</td>
+                <td class="hi">✗✗ False</td>
+              </tr>
+              <tr>
+                <td><b>Likely Authentic</b></td>
+                <td><b>Mismatched / Out of Context</b></td>
+                <td>False / Unverifiable</td>
+                <td class="warn">✗✗ False / ≈ Misleading Context</td>
+              </tr>
+              <tr>
+                <td><b>Likely Authentic</b></td>
+                <td><b>Consistent</b></td>
+                <td>True / Mostly True</td>
+                <td class="ok">✓✓ True / ✓ Mostly True</td>
+              </tr>
+              <tr>
+                <td><b>Inconclusive</b></td>
+                <td>Consistent / Partial</td>
+                <td>Unverifiable</td>
+                <td><b>? Unverifiable</b></td>
+              </tr>
+            </table>
+            <div class="callout green r" data-s="1"><b>Why 3 Pillars Matter:</b> Users always see <i>all three</i> badges separately at the top of the dashboard — so an authentic photo with a false caption is never mislabelled as a “fake image”.</div>
+          </div>`,
+        steps: [
+          { note: "This table shows the exact deterministic fusion logic implemented in backend/app/pipeline/aggregate.py. AI-generated or manipulated media takes precedence cleanly, direct visual contradiction marks the claim False, and authentic photos reused out of context are flagged as False or Mixed/Misleading Context." },
+          { note: "Even more importantly, the dashboard always renders all three pillars individually so a user immediately understands WHY a post failed verification." },
+        ],
+      });
+
+      // SLIDE 12: Case Study 1 — AI Fake Verdict Dashboard (Real Screenshot)
+      S.push({
+        name: "Demo 1: AI fake dashboard",
+        kicker: "Part 3 · Real Project Dashboard (Case Study 1)",
+        title: "Case Study 1: Doctored / AI-tagged Eiffel Tower fire hoax",
+        body: `
+          <div class="two-shot">
+            <div class="r" data-s="0">${shot("assets/03-dashboard-ai-verdict.png", "VeriFact Dashboard · Case 1: Image + Claim AI Fake", 442)}</div>
+            <div class="col">
+              <div class="card r" data-s="1">
+                <span class="tag">Submitted Input</span>
+                <p><b>Image:</b> <code>eiffel-fire-fake.jpg</code> (880×560 JPEG)<br><b>Claim:</b> “BREAKING: The Eiffel Tower in Paris is engulfed in flames right now after a massive explosion.”</p>
+              </div>
+              <div class="steprow r" data-s="2"><div class="n acc">1</div><div><b>Image:</b> <span class="badge">Likely AI-Generated</span> — Stable Diffusion &amp; Photoshop headers + synthetic smoke lighting + localized ELA anomaly.</div></div>
+              <div class="steprow r" data-s="2"><div class="n grn">2</div><div><b>Match:</b> <span class="badge green">Consistent</span> — Image shows the claimed fire scene, but the fire itself is fabricated.</div></div>
+              <div class="steprow r" data-s="3"><div class="n acc">3</div><div><b>Claim:</b> <span class="badge">False</span> — 4 independent official, wire &amp; fact-check domains confirm the tower is intact.</div></div>
+            </div>
+          </div>`,
+        steps: [
+          { note: "Let's look at real screenshots from our running VeriFact dashboard. In Case Study 1, a user uploads a dramatic image of the Eiffel Tower supposedly on fire with a breaking-news claim." },
+          { note: "Look at the top 3-pillar summary card on the dashboard: VeriFact breaks the answer into three clear boxes right below the overall AI-Generated verdict." },
+          { note: "Pillar 1 catches the synthetic/doctored image; Pillar 2 notes the scene depicts the claim (though synthetic)." },
+          { note: "And Pillar 3 refutes the underlying factual claim across 4 independent domains (exceeding the ≥ 3 sensitive-topic violence threshold)." },
+        ],
+      });
+
+      // SLIDE 13: Case Study 1 — ELA Heatmap Forensics Lab (Real Screenshot)
+      S.push({
+        name: "Demo 1: ELA forensics lab",
+        kicker: "Part 3 · Real Project Dashboard (Forensics Lab)",
+        title: "Interactive Image Forensics Lab: real ELA heatmap in action",
+        body: `
+          <div class="two-shot">
+            <div class="r" data-s="0">${shot("assets/04-forensics-ela.png", "VeriFact Forensics Lab · Genuine ELA Heatmap + Metadata", 442)}</div>
+            <div class="col">
+              <div class="card tint r" data-s="1">
+                <span class="tag">Computed by VeriFact's Forensics Engine</span>
+                <h3>Localized Error Spike</h3>
+                <p>Switching the viewer tab to <b>ELA Heatmap</b> reveals a bright red/yellow error hotspot centered <i>directly</i> on the altered flame and smoke plume, while the unaltered blue sky stays dark.</p>
+              </div>
+              <div class="card r" data-s="2">
+                <span class="tag">Captured Technical Signals</span>
+                <div class="mono">ELA Block CV : 1.419 · p99: 8.0<br>Noise Block CV: 1.872<br>AI Metadata   : Stable Diffusion<br>Forensic Risk : high_metadata_ai</div>
+              </div>
+              <div class="callout r" data-s="3"><b>Interactive Tabs:</b> Users toggle seamlessly between <b>Original Image</b>, <b>ELA Heatmap</b>, and <b>Noise Residual</b> alongside visual anomalies.</div>
+            </div>
+          </div>`,
+        steps: [
+          { note: "Scrolling down to the Image Forensics Lab and clicking the ELA Heatmap tab shows a genuine heatmap computed by our image_forensics.py engine." },
+          { note: "Notice how the manipulated flame and smoke region glows intensely red and yellow against the quiet dark background sky." },
+          { note: "Below the heatmap, VeriFact displays the exact EXIF/metadata findings — showing stripped camera EXIF and Stable Diffusion parameters — plus all six pixel and frequency metrics." },
+          { note: "Users can switch between Original, ELA Heatmap, and Noise Residual in a single click." },
+        ],
+      });
+
+      // SLIDE 14: Case Study 1 — Evidence Board (Real Screenshot)
+      S.push({
+        name: "Demo 1: Evidence board",
+        kicker: "Part 3 · Real Project Dashboard (Evidence Board)",
+        title: "Interactive SVG Evidence Board & source transparency",
+        body: `
+          <div class="two-shot">
+            <div class="r" data-s="0">${shot("assets/05-evidence-board.png", "VeriFact Evidence Board · Credibility × Stance Radial Map", 442)}</div>
+            <div class="col">
+              <div class="steprow r" data-s="1"><div class="n acc">◆</div><div><b>Red Diamonds (− Refutes):</b> 4 independent credible domains (fact-check, Paris Fire Dept, wire, heritage site) outweigh a single low-credibility social post.</div></div>
+              <div class="steprow r" data-s="2"><div class="n blu">○</div><div><b>Size = Credibility Prior:</b> Larger nodes represent higher-trust institutional/wire domains; faded nodes show discarded or uncounted items.</div></div>
+              <div class="steprow r" data-s="3"><div class="n grn">“”</div><div><b>Hover for Exact Quote:</b> Hovering or focusing any node reveals its verbatim quote, retrieval date, and discard reason; clicking opens the source URL.</div></div>
+              <div class="callout gold r" data-s="4"><b>Honest Gauge:</b> Evidence strength (55/100) is explicitly labelled <b>UNCALIBRATED</b> until fitted on a held-out benchmark.</div>
+            </div>
+          </div>`,
+        steps: [
+          { note: "Below the Forensics Lab sits VeriFact's custom interactive SVG Evidence Board for every extracted factual claim." },
+          { note: "Each stance uses both shape and glyph — red diamonds with minus signs refute the claim, green circles with plus signs support it — ensuring color-blind accessibility." },
+          { note: "Node radius encodes domain credibility prior, while faded outer nodes show items that were discarded (such as syndicated wire duplicates or unverified quotes)." },
+          { note: "Hovering any source reveals the exact verbatim quote used by the stance classifier, and clicking opens the original link." },
+          { note: "Notice the evidence strength gauge is honestly tagged Uncalibrated rather than masquerading as a probability." },
+        ],
+      });
+
+      // SLIDE 15: Case Study 2 — Real Photo Used Out of Context (Real Screenshot)
+      S.push({
+        name: "Demo 2: Out-of-context photo",
+        kicker: "Part 3 · Real Project Dashboard (Case Study 2)",
+        title: "Case Study 2: Authentic photo repurposed with a false claim",
+        body: `
+          <div class="two-shot">
+            <div class="r" data-s="0">${shot("assets/06-dashboard-ooc.png", "VeriFact Dashboard · Case 2: Authentic Photo, Out of Context", 442)}</div>
+            <div class="col">
+              <div class="card r" data-s="1">
+                <span class="tag">The Hardest Misinformation Pattern</span>
+                <p><b>Claim:</b> “BREAKING: Flash flood submerges downtown Paris streets this morning after record storm.”</p>
+              </div>
+              <div class="steprow r" data-s="2"><div class="n grn">✓</div><div><b>Image:</b> <span class="badge green">Likely Authentic</span> — Genuine <code>Canon EOS R6</code> EXIF (2021-07-15) and uniformly low ELA (mean 0.082).</div></div>
+              <div class="steprow r" data-s="3"><div class="n" style="background:var(--gold)">⚠</div><div><b>Match:</b> <span class="badge gold">Mismatched / Out of Context</span> — Vision OCR reads English <b>“Cartridge World”</b> &amp; <b>“SALE”</b> signs, disproving downtown Paris.</div></div>
+              <div class="steprow r" data-s="4"><div class="n acc">✗</div><div><b>Claim:</b> <span class="badge">False</span> — Weather agency &amp; wire sources confirm dry roads in Paris today.</div></div>
+            </div>
+          </div>`,
+        steps: [
+          { note: "Case Study 2 demonstrates why separating our three pillars is so powerful. Here a real flood photograph is paired with a breaking-news claim about Paris today." },
+          { note: "An image-only AI detector would simply say 'Real Photo!' and mislead the user into believing the hoax." },
+          { note: "VeriFact correctly reports Pillar 1 as Likely Authentic — citing the Canon EOS R6 EXIF from July 2021 and clean uniform ELA." },
+          { note: "Then Pillar 2 catches the deception: vision OCR reads the English 'Cartridge World' and 'SALE' storefronts, flagging Mismatched / Out of Context." },
+          { note: "Finally, Pillar 3 verifies Paris weather reports and fuses the overall verdict to False." },
+        ],
+      });
+
+      // SLIDE 16: Hardcoded Demo Hub (Real Screenshot)
+      S.push({
+        name: "Hardcoded interactive demo",
+        kicker: "Part 3 · Zero-Dependency Presentation Demo",
+        title: "Built-in hardcoded demo lab (/demo) — zero API keys needed",
+        body: `
+          <div class="two-shot">
+            <div class="r" data-s="0">${shot("assets/08-demo-hub.png", "localhost:3000/demo · Hardcoded Interactive Demo Hub", 438)}</div>
+            <div class="col">
+              <div class="card tint r" data-s="1">
+                <span class="tag">Built for Live Classroom &amp; Jury Demos</span>
+                <h3>4 Instant Scenarios at <code>/demo</code></h3>
+                <p>Includes both featured <b>Image + Claim</b> scenarios (AI Fake &amp; Out of Context) plus single-claim and parallel multi-claim text scenarios.</p>
+              </div>
+              <div class="steprow r" data-s="2"><div class="n grn">⚡</div><div><b>Open Dashboard Instantly:</b> Jump straight into the interactive Forensics Lab (toggle Original/ELA/Noise) and hoverable Evidence Board in 0 seconds.</div></div>
+              <div class="steprow r" data-s="3"><div class="n blu">▶</div><div><b>Guided Autopilot Tour:</b> Plays the full hero → live SSE investigation → verdict walkthrough with narrated captions and keyboard controls.</div></div>
+              <div class="callout blue r" data-s="4"><b>Deep-Linkable:</b> Open <code>/demo?play=img-ai&amp;view=result</code> directly during a live presentation with zero network risk.</div>
+            </div>
+          </div>`,
+        steps: [
+          { note: "Live demos can fail on conference Wi-Fi or API rate limits. So we built a full hardcoded interactive demo hub at /demo." },
+          { note: "It features both Image + Claim scenarios alongside single-claim and multi-claim parallel text demos, complete with genuine ELA and noise heatmaps pre-computed by our forensics engine." },
+          { note: "Click 'Open Dashboard' to land immediately on the fully interactive Result View where you can switch heatmap tabs, hover sources, and toggle 'Show the reasoning'." },
+          { note: "Or click 'Guided Tour' to play an automated narrated walkthrough from image upload through live SSE steps to the final verdict." },
+          { note: "Direct query URLs also let you jump to any view instantaneously." },
+        ],
+      });
+
+      // SLIDE 17: Security, Testing & Honest Limitations
+      S.push({
+        name: "Security, tests & limitations",
+        kicker: "Part 4 · Engineering Quality",
+        title: "Security hardening, verification & honest limitations",
+        body: `
+          <div class="two-eq">
+            <div class="card r" data-s="0">
+              <span class="tag">Security &amp; Verification Status</span>
+              <h3>Tested Offline &amp; Live</h3>
+              <div class="col" style="margin-top:10px;gap:9px">
+                <div class="steprow"><div class="n grn">✓</div><div><b>SSRF Guard:</b> Only public http(s) IPs; DNS resolved &amp; every redirect hop re-validated; private IPs &amp; odd ports blocked.</div></div>
+                <div class="steprow"><div class="n grn">✓</div><div><b>Upload Safety:</b> Magic-byte validation, 15 MB &amp; 40 MP caps, isolated decoding in <code>ml-service</code>.</div></div>
+                <div class="steprow"><div class="n grn">✓</div><div><b>Automated Tests:</b> <b>34 backend tests</b> + <b>7 ml-service tests</b> + strict Next.js TypeScript &amp; production build passing.</div></div>
+                <div class="steprow"><div class="n blu">●</div><div><b>Live E2E Verified:</b> Verified end-to-end against real Groq Vision + Text (<code>qwen/qwen3.8-27b</code>) and live web/Wikipedia retrieval.</div></div>
+              </div>
+            </div>
+            <div class="card tint r" data-s="1">
+              <span class="tag">Honest Known Limitations</span>
+              <h3>What VeriFact clearly discloses</h3>
+              <div class="col" style="margin-top:10px;gap:10px">
+                <p class="small"><b>1. Probabilistic Forensics:</b> Social-media recompression strips EXIF and reduces ELA sensitivity; indicators are never standalone proof.</p>
+                <p class="small"><b>2. Uncalibrated Confidence:</b> Evidence strength is a transparent heuristic until calibrated on held-out benchmarks (ECE/Platt scaling).</p>
+                <p class="small"><b>3. Reverse Image Keys:</b> Keyless mode uses visual-context web search; pixel-exact reverse search requires optional Google Vision / SerpAPI keys.</p>
+                <p class="small"><b>4. Modalities Remaining:</b> Video frame sampling and audio deepfake/anti-spoof verification are planned for the next milestone.</p>
+              </div>
+            </div>
+          </div>`,
+        steps: [
+          { note: "Security and engineering rigor are built into every boundary: SSRF protection validates every DNS resolution and redirect hop, uploads are magic-byte verified, and 41 automated tests plus a live Groq vision-and-text smoke test all pass." },
+          { note: "Equally important is scientific honesty: VeriFact surfaces its own limitations directly on every result — disclosing uncalibrated confidence, social-media EXIF stripping, and keyless reverse-search trade-offs." },
+        ],
+      });
+
+      // SLIDE 18: Key Takeaways & Thank You
+      S.push({
+        name: "Summary & roadmap",
+        kicker: "Conclusion",
+        title: "Key takeaways & next milestones",
+        body: `
+          <div class="two" style="grid-template-columns:1fr 370px;align-items:start">
+            <div class="col">
+              <div class="steprow r" data-s="0"><div class="n">1</div><div><b>Complete Image + Claim Verification:</b> Answers <i>Is the image real?</i>, <i>Does it match the claim?</i>, and <i>Is the claim real?</i> in one unified workflow.</div></div>
+              <div class="steprow r" data-s="0"><div class="n acc">2</div><div><b>Forensics + Vision Together:</b> Combines EXIF/C2PA/AI metadata, ELA, noise &amp; FFT heatmaps with Vision LLM anomaly and OCR inspection.</div></div>
+              <div class="steprow r" data-s="0"><div class="n blu">3</div><div><b>Zero Hallucinated Verdicts:</b> Verbatim-quote checks, syndication deduplication, NLI cross-checks, and deterministic domain-weighted rules.</div></div>
+              <div class="steprow r" data-s="0"><div class="n grn">4</div><div><b>Free-First &amp; Demo-Ready:</b> Runs locally with Groq free tier + SQLite fallback, plus a zero-API hardcoded interactive demo at <code>/demo</code>.</div></div>
+              <div class="card tint r" data-s="1" style="margin-top:8px;padding:12px 16px">
+                <span class="tag">Roadmap</span>
+                <p class="small">Held-out LIAR/FEVER calibration (ECE) · Dedicated neural AI-image classifier · Video/audio deepfake pipeline · Rate limiting &amp; PDF export.</p>
+              </div>
+            </div>
+            <div class="card tint r" data-s="1" style="text-align:center;padding:42px 24px">
+              <div style="font:700 13px var(--mono);letter-spacing:0.16em;color:var(--accent);text-transform:uppercase">VERIFACT</div>
+              <div style="font:600 40px var(--serif);color:var(--navy);margin-top:10px">Thank you</div>
+              <div style="font-size:19px;color:var(--muted);margin-top:8px">Live Demo &amp; Questions?</div>
+              <div class="mono" style="margin-top:22px;padding:10px;background:#fff;border:1px solid var(--line);border-radius:7px;font-size:12.5px">http://localhost:3000<br>http://localhost:3000/demo</div>
+            </div>
+          </div>`,
+        steps: [
+          { note: "To summarize: VeriFact delivers end-to-end Image + Claim fake information detection, pairing deterministic pixel forensics with vision alignment and retrieval-grounded claim verification, all runnable free-first locally or via our instant hardcoded demo." },
+          { note: "Thank you everyone! I'd be happy to walk through the live interactive dashboard at localhost:3000/demo and take your questions." },
+        ],
+      });
+
+      // ============================================================ player
+      const $ = (id) => document.getElementById(id);
+      const stage = $("stage");
+      const FLAT = [];
+      S.forEach((s, si) => s.steps.forEach((_, k) => FLAT.push([si, k])));
+      const start = S.map((_, si) => FLAT.findIndex((f) => f[0] === si));
+      let pos = -1,
+        rendered = -1,
+        el = null;
+
+      function render(si) {
+        const s = S[si];
+        stage.innerHTML = `<div class="slide${s.cover ? " cover" : ""}">${
+          s.cover
+            ? ""
+            : `<div class="head"><div class="kicker">${s.kicker}</div><h2 class="title">${s.title}</h2><div class="rule"></div></div>`
+        }<div class="body">${s.body}</div><div class="sfoot"><span>VeriFact · Multimodal Fake Information Detector</span><span>${si + 1} / ${S.length}</span></div></div>`;
+        el = stage.firstElementChild;
+        rendered = si;
+      }
+      function reveal(k) {
+        el.querySelectorAll("[data-s]").forEach((x) => x.classList.toggle("on", +x.dataset.s <= k));
+      }
+      function go(p, still) {
+        p = Math.max(0, Math.min(FLAT.length - 1, p));
+        const [si, k] = FLAT[p];
+        if (!(si === rendered && p === pos + 1)) {
+          stage.classList.add("instant");
+          render(si);
+          reveal(k - 1);
+          for (let j = 0; j < k; j++) {
+            const f = S[si].steps[j].run;
+            f && f(el, true);
+          }
+          void stage.offsetWidth;
+          if (!still) stage.classList.remove("instant");
+        }
+        reveal(k);
+        const f = S[si].steps[k].run;
+        f && f(el, !!still);
+        pos = p;
+        $("count").textContent = `${si + 1} / ${S.length}`;
+        $("notes").innerHTML = `<small>Speaker notes · ${si + 1}.${k + 1}</small>${S[si].steps[k].note}`;
+        segs.forEach(
+          (g, j) =>
+            (g.firstChild.style.width =
+              j < si ? "100%" : j > si ? "0%" : ((k + 1) / S[si].steps.length) * 100 + "%"),
+        );
+        [...$("menu").children].forEach((b, j) => b.classList.toggle("cur", j === si));
+      }
+      const segs = S.map((s, si) => {
+        const g = document.createElement("div");
+        g.className = "seg";
+        g.innerHTML = "<i></i>";
+        g.style.setProperty("--n", s.steps.length);
+        g.title = `${si + 1}. ${s.name}`;
+        g.onclick = (e) => {
+          e.stopPropagation();
+          go(start[si]);
+        };
+        $("prog").appendChild(g);
+        return g;
+      });
+      S.forEach((s, si) => {
+        const b = document.createElement("button");
+        b.innerHTML = `<span>${String(si + 1).padStart(2, "0")}</span>${s.name}`;
+        b.onclick = () => {
+          go(start[si]);
+          $("menu").hidden = true;
+        };
+        $("menu").appendChild(b);
+      });
+
+      const next = () => go(pos + 1),
+        prev = () => go(pos - 1);
+      function toggleFull() {
+        document.fullscreenElement
+          ? document.exitFullscreen()
+          : document.documentElement.requestFullscreen?.();
+      }
+      document.addEventListener("fullscreenchange", () => {
+        document.body.classList.toggle("fs", !!document.fullscreenElement);
+        $("bFull").classList.toggle("on", !!document.fullscreenElement);
+        fit();
+      });
+      $("bPrev").onclick = prev;
+      $("bNext").onclick = next;
+      $("bFull").onclick = toggleFull;
+      $("bMenu").onclick = () => {
+        $("menu").hidden = !$("menu").hidden;
+        $("help").hidden = true;
+      };
+      $("bHelp").onclick = () => {
+        $("help").hidden = !$("help").hidden;
+        $("menu").hidden = true;
+      };
+      $("bNotes").onclick = () => {
+        $("notes").hidden = !$("notes").hidden;
+        $("bNotes").classList.toggle("on", !$("notes").hidden);
+      };
+      $("viewport").onclick = () => {
+        if (!$("menu").hidden || !$("help").hidden) {
+          $("menu").hidden = $("help").hidden = true;
+          return;
+        }
+        next();
+      };
+      document.addEventListener("keydown", (e) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        const k = e.key;
+        if ([" ", "ArrowRight", "ArrowDown", "PageDown", "Enter"].includes(k)) {
+          e.preventDefault();
+          next();
+        } else if (["ArrowLeft", "ArrowUp", "PageUp", "Backspace"].includes(k)) {
+          e.preventDefault();
+          prev();
+        } else if (k === "Home") go(0);
+        else if (k === "End") go(FLAT.length - 1);
+        else if (k === "f" || k === "F") toggleFull();
+        else if (k === "n" || k === "N") $("bNotes").click();
+        else if (k === "m" || k === "M") $("bMenu").click();
+        else if (k === "?") $("bHelp").click();
+        else if (k === "Escape") {
+          $("menu").hidden = $("help").hidden = true;
+        }
+      });
+      let tx = null;
+      $("viewport").addEventListener("touchstart", (e) => (tx = e.touches[0].clientX), { passive: true });
+      $("viewport").addEventListener("touchend", (e) => {
+        if (tx == null) return;
+        const dx = e.changedTouches[0].clientX - tx;
+        tx = null;
+        if (Math.abs(dx) > 40) {
+          e.preventDefault();
+          dx < 0 ? next() : prev();
+        }
+      });
+
+      function fit() {
+        const v = $("viewport"),
+          pad = document.body.classList.contains("fs") ? 0 : 24;
+        const s = Math.min((v.clientWidth - pad) / 1280, (v.clientHeight - pad) / 720);
+        stage.style.transform = `translate(-50%,-50%) scale(${Math.max(0.1, s)})`;
+      }
+      addEventListener("resize", fit);
+
+      if (location.search.includes("bare")) document.body.classList.add("fs");
+      fit();
+      const m = location.hash.match(/^#(\d+)(?:\.(\d+))?/);
+      if (m) {
+        const si = Math.min(S.length, +m[1]) - 1,
+          k = Math.min(S[si].steps.length, +(m[2] || S[si].steps.length)) - 1;
+        go(start[si] + k, location.search.includes("still"));
+      } else go(0);
+
+      if (location.search.includes("check")) {
+        const runCheck = () => {
+          const out = [];
+          S.forEach((s, si) => {
+            go(start[si] + s.steps.length - 1, true);
+            const b = el.querySelector(".body");
+            if (b.scrollHeight > b.clientHeight + 2 || b.scrollWidth > b.clientWidth + 2)
+              out.push(`slide ${si + 1}: body overflow ${b.scrollWidth}x${b.scrollHeight} > ${b.clientWidth}x${b.clientHeight}`);
+            const br = b.getBoundingClientRect();
+            const items = [
+              ...el.querySelectorAll(".card,.callout,.steprow,.lead,.pbox,.small,.brow,.stat,.who,h1,.sub,table.mat,.shot-frame"),
+            ].filter((x) => x.offsetParent);
+            items.forEach((x) => {
+              const r = x.getBoundingClientRect();
+              if (r.bottom > br.bottom + 2 || r.right > br.right + 2)
+                out.push(`slide ${si + 1}: clipped ${x.className}`);
+            });
+            for (let i = 0; i < items.length; i++)
+              for (let j = i + 1; j < items.length; j++) {
+                const a = items[i], c = items[j];
+                if (a.contains(c) || c.contains(a)) continue;
+                const A = a.getBoundingClientRect(), C = c.getBoundingClientRect();
+                const ox = Math.min(A.right, C.right) - Math.max(A.left, C.left),
+                  oy = Math.min(A.bottom, C.bottom) - Math.max(A.top, C.top);
+                if (ox > 2 && oy > 2) out.push(`slide ${si + 1}: overlap "${a.className}" / "${c.className}"`);
+              }
+          });
+          const pre = document.createElement("pre");
+          pre.id = "check";
+          pre.textContent = out.length ? out.join("\n") : "LAYOUT OK (" + S.length + " slides)";
+          document.body.appendChild(pre);
+        };
+        window.addEventListener("load", () => setTimeout(runCheck, 300));
+      }
+    </script>
+  </body>
+</html>
