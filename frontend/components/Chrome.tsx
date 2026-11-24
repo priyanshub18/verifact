@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 const COMMANDS = [
-  { label: "New check", href: "/" }, { label: "Architecture", href: "/architecture" }, { label: "How VeriFact works", href: "/how-it-works" },
+  { label: "New check", href: "/" }, { label: "Guided demo", href: "/demo" }, { label: "Architecture", href: "/architecture" }, { label: "How VeriFact works", href: "/how-it-works" },
   { label: "Known limitations", href: "/limitations" },
 ];
 
@@ -40,6 +40,7 @@ export function Chrome() {
           <span aria-hidden className="inline-block h-3 w-3 rounded-full bg-signal shadow-[0_0_18px_rgb(var(--signal))]" />VeriFact
         </Link>
         <nav className="flex items-center gap-2 text-sm" aria-label="Primary">
+          <Link className="hidden px-3 py-2 text-signal hover:text-fg sm:block" href="/demo">Demo</Link>
           <Link className="hidden px-3 py-2 text-dim hover:text-fg sm:block" href="/architecture">Architecture</Link>
           <Link className="hidden px-3 py-2 text-dim hover:text-fg sm:block" href="/how-it-works">How it works</Link>
           <Link className="hidden px-3 py-2 text-dim hover:text-fg sm:block" href="/limitations">Limitations</Link>

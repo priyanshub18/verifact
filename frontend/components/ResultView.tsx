@@ -1,8 +1,10 @@
 "use client";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useState } from "react";
 import { CheckResult, ClaimResult, ProgressEvent, VERDICT_STYLE } from "@/lib/api";
 import { EvidenceBoard } from "./EvidenceBoard";
+import { ImageForensicsPanel } from "./ImageForensicsPanel";
 
 const TONE = { sup: "text-sup border-sup", ref: "text-ref border-ref", amber: "text-amber border-amber", dim: "text-dim border-line" };
 
@@ -60,7 +62,9 @@ function Claim({ c, showReasoning }: { c: ClaimResult; showReasoning: boolean })
           <div key={s}><p className="label mb-2">{s === "supports" ? "+ Supporting" : "− Refuting"} ({counted.filter((e) => e.stance === s).length})</p>
             <ul className="space-y-3">{counted.filter((e) => e.stance === s).map((e) => (
               <li key={e.id} className="text-sm"><blockquote className="border-l-2 border-line pl-3 italic">{e.quote}</blockquote>
-                <a className="text-xs text-dim underline" target="_blank" rel="noopener noreferrer" href={e.url}>{e.domain} · {e.published_at ?? "undated"} · retrieved {new Date(e.retrieved_at).toLocaleDateString()}</a></li>))}
+                <a className="text-xs text-dim underline" target="_blank" rel="noopener noreferrer" href={e.url}>{e.domain} · {e.published_at ?? "undated"} · retrieved {new Date(e.retrieved_at).toLocaleDateString()}</a>
+                {e.nli_label && <span className="ml-2 font-mono text-[11px] text-dim">· NLI: {e.nli_label} ({Math.round((e.nli_score ?? 0) * 100)}%)</span>}
+              </li>))}
               {counted.filter((e) => e.stance === s).length === 0 && <li className="text-sm text-dim">None found.</li>}</ul></div>
         ))}
       </div>
@@ -89,14 +93,46 @@ function Claim({ c, showReasoning }: { c: ClaimResult; showReasoning: boolean })
   );
 }
 
-export function ResultView({ result, events }: { result: CheckResult; events: ProgressEvent[] }) {
+export function ResultView({
+  result,
+  events,
+  defaultImageView = "original",
+}: {
+  result: CheckResult;
+  events: ProgressEvent[];
+  defaultImageView?: "original" | "ela" | "noise";
+}) {
   const [reason, setReason] = useState(false);
   const verdict = result.overall_verdict ?? "Unverifiable";
   const share = typeof window !== "undefined" ? window.location.href : "";
+  const ms = result.multimodal_summary;
+
   return (
     <div className="pt-10">
-      <p className="label">Overall assessment{result.input.domain && ` · ${result.input.domain}`}</p>
+      <p className="label">Overall assessment · {result.input.kind}{result.input.domain && ` · ${result.input.domain}`}</p>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-3"><VerdictBadge verdict={verdict} big /></motion.div>
+
+      {/* Multimodal 3-Pillar Summary: Is the Image Real? Do They Match? Is the Claim Real? */}
+      {ms && (
+        <section className="glass mt-6 rounded-2xl p-5 sm:p-6" aria-label="Multimodal verdict breakdown">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-line bg-ink/40 p-4">
+              <p className="label">1. Is the Image Real?</p>
+              <div className="mt-2"><VerdictBadge verdict={ms.image_verdict} /></div>
+            </div>
+            <div className="rounded-xl border border-line bg-ink/40 p-4">
+              <p className="label">2. Does Image Match Claim?</p>
+              <div className="mt-2"><VerdictBadge verdict={ms.image_claim_match} /></div>
+            </div>
+            <div className="rounded-xl border border-line bg-ink/40 p-4">
+              <p className="label">3. Is the Claim Real?</p>
+              <div className="mt-2"><VerdictBadge verdict={ms.claim_verdict} /></div>
+            </div>
+          </div>
+          <p className="mt-4 text-sm text-fg">{ms.summary}</p>
+        </section>
+      )}
+
       <div className="mt-6 flex flex-wrap gap-3 text-sm">
         <button className="glass rounded-md px-3 py-2" aria-pressed={reason} onClick={() => setReason(!reason)}>{reason ? "Hide" : "Show"} the reasoning</button>
         <button className="glass rounded-md px-3 py-2" onClick={() => navigator.clipboard?.writeText(share)}>Copy link</button>
@@ -104,9 +140,27 @@ export function ResultView({ result, events }: { result: CheckResult; events: Pr
           const b = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
           const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `verifact-${result.id}.json`; a.click();
         }}>Export JSON</button>
+        <Link href="/" className="glass rounded-md px-3 py-2 text-signal">New check</Link>
       </div>
+
       {result.errors.length > 0 && <ul className="mt-4 text-sm text-amber">{result.errors.map((e) => <li key={e}>◌ {e}</li>)}</ul>}
-      <div className="mt-8 space-y-6">{result.claims.map((c, i) => <Claim key={i} c={c} showReasoning={reason} />)}</div>
+
+      {result.image_analysis && (
+        <ImageForensicsPanel
+          checkId={result.id}
+          analysis={result.image_analysis}
+          hasImage={result.input.has_image}
+          imageUrl={result.input.image_url}
+          defaultView={defaultImageView}
+        />
+      )}
+
+      {result.claims.length > 0 && (
+        <div className="mt-8 space-y-6">
+          {result.claims.map((c, i) => <Claim key={i} c={c} showReasoning={reason} />)}
+        </div>
+      )}
+
       <section className="mt-10 text-sm text-dim"><p className="label mb-2">Limitations of this result</p>
         <ul className="list-inside list-disc space-y-1">{result.limitations.map((l) => <li key={l}>{l}</li>)}</ul>
         <p className="mt-3 font-mono text-xs">LLM usage: {result.llm_usage.calls ?? 0} calls · {result.llm_usage.input_tokens ?? 0} in / {result.llm_usage.output_tokens ?? 0} out tokens</p></section>

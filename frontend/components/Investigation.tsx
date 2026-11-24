@@ -3,8 +3,18 @@ import { motion } from "framer-motion";
 import { ProgressEvent } from "@/lib/api";
 
 const STEP_LABEL: Record<string, string> = {
-  fetch: "Fetching the page", claims: "Extracting claims", queries: "Planning searches (incl. disconfirming)",
-  search: "Searching sources", read: "Reading evidence", verify: "Weighing stance & credibility", done: "Finished", error: "Error",
+  fetch: "Fetching the page",
+  image_forensics: "Running image forensics (EXIF, C2PA, ELA, noise & spectrum)",
+  vision: "Inspecting image content, artifacts & image–claim consistency",
+  image_provenance: "Tracing image origin & photo fact-checks on the web",
+  claims: "Extracting atomic claims",
+  queries: "Planning searches (incl. disconfirming)",
+  search: "Searching sources",
+  read: "Reading & ranking evidence",
+  verify: "Weighing stance, NLI & credibility",
+  fuse: "Fusing image & claim verification verdict",
+  done: "Finished",
+  error: "Error",
 };
 
 export function Investigation({ events, failed, errors }: { events: ProgressEvent[]; failed: boolean; errors?: string[] }) {
@@ -15,7 +25,7 @@ export function Investigation({ events, failed, errors }: { events: ProgressEven
   return (
     <section aria-live="polite" aria-label="Live investigation">
       <p className="label mb-3">Live investigation</p>
-      <h2 className="font-display text-4xl">{failed ? "The investigation stopped" : "Reading the evidence…"}</h2>
+      <h2 className="font-display text-4xl">{failed ? "The investigation stopped" : "Inspecting the evidence…"}</h2>
       <ol className="mt-8 space-y-3">
         {order.length === 0 && <li className="text-dim">Waiting for the worker to pick up the job…</li>}
         {order.map((s) => {
