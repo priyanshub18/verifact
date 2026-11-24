@@ -22,6 +22,9 @@ htmlcov/
 # Local databases and runtime data
 *.db
 *.sqlite
+uploads/
+backend/uploads/
+*.sqlite
 *.sqlite3
 dump.rdb
 uploads/

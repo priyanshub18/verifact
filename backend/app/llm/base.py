@@ -1,11 +1,12 @@
-"""Provider-agnostic structured-output LLM interface.
+"""Provider-agnostic structured-output LLM interface (text + vision).
 
-The LLM is only ever asked to reason over text we retrieved. It is never a source of facts.
-Every call validates against a Pydantic schema and retries with the validation error appended.
+The LLM is only ever asked to reason over text we retrieved or images the user uploaded.
+It is never a source of external facts. Every call validates against a Pydantic schema and retries on validation error.
 """
 from __future__ import annotations
 
 import copy
+import re
 from dataclasses import dataclass, field
 from typing import Protocol, TypeVar
 
@@ -41,6 +42,20 @@ class RawProvider(Protocol):
     async def complete_json(self, system: str, user: str, schema: dict) -> tuple[str, int, int]: ...
 
 
+def extract_json_payload(text: str) -> str:
+    """Strip <think>...</think> blocks or markdown fences that some reasoning models emit around JSON."""
+    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip()
+    m = re.search(r"```(?:json)?\s*(\{.*\})\s*```", cleaned, flags=re.S)
+    if m:
+        return m.group(1).strip()
+    if not cleaned.startswith("{"):
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start != -1 and end > start:
+            return cleaned[start:end + 1]
+    return cleaned
+
+
 @dataclass
 class LLMClient:
     provider: RawProvider
@@ -55,11 +70,27 @@ class LLMClient:
             text, i, o = await self.provider.complete_json(system, prompt, schema)
             self.usage.add(i, o)
             try:
-                return model.model_validate_json(text)
+                return model.model_validate_json(extract_json_payload(text))
             except ValidationError as e:
                 last_err = str(e)[:800]
                 prompt = f"{user}\n\nYour previous reply failed schema validation:\n{last_err}\nReturn corrected JSON only."
         raise LLMError(f"LLM output failed validation after retries: {last_err}")
+
+    async def structured_with_image(self, system: str, user: str, image_bytes: bytes, mime: str, model: type[T]) -> T:
+        if not hasattr(self.provider, "complete_json_with_image"):
+            raise LLMError("The selected LLM provider does not support image inspection.")
+        schema = strict_schema(model.model_json_schema())
+        prompt = user
+        last_err = ""
+        for _ in range(self.max_retries + 1):
+            text, i, o = await self.provider.complete_json_with_image(system, prompt, image_bytes, mime, schema)
+            self.usage.add(i, o)
+            try:
+                return model.model_validate_json(extract_json_payload(text))
+            except ValidationError as e:
+                last_err = str(e)[:800]
+                prompt = f"{user}\n\nYour previous reply failed schema validation:\n{last_err}\nReturn corrected JSON only."
+        raise LLMError(f"Vision LLM output failed validation after retries: {last_err}")
 
 
 def strict_schema(schema: dict) -> dict:
