@@ -1,17 +1,33 @@
-"""Deterministic, inspectable evidence aggregation.
+"""Deterministic, inspectable evidence aggregation & multimodal verdict fusion.
 
 Confidence here is a *heuristic evidence-strength score*, not a calibrated probability.
-It is flagged `confidence_calibrated=False` until a calibrator fitted on held-out data (milestone 4/5) is loaded.
+It is flagged `confidence_calibrated=False` until a calibrator fitted on held-out data is loaded.
 """
 from __future__ import annotations
 
 import math
-from collections import defaultdict
 
-from app.schemas import EvidenceItem, Stance, Verdict
+from app.schemas import (
+    ClaimImageAlignment,
+    ClaimResult,
+    EvidenceItem,
+    ImageAnalysis,
+    MultimodalSummary,
+    Stance,
+    Verdict,
+    VisualAuthAssessment,
+)
 
 MIN_DOMAINS = {"none": 2, "finance": 2, "health": 3, "election": 3, "violence": 3}
 MIN_TOTAL_WEIGHT = 0.9
+
+ALIGNMENT_LABELS = {
+    ClaimImageAlignment.consistent: "Consistent",
+    ClaimImageAlignment.partially_consistent: "Partially Consistent",
+    ClaimImageAlignment.mismatched_context: "Mismatched / Out of Context",
+    ClaimImageAlignment.contradicts_image: "Contradicts Image",
+    ClaimImageAlignment.no_claim: "No Claim Provided",
+}
 
 
 def weight_of(e: EvidenceItem) -> float:
@@ -66,6 +82,142 @@ def aggregate(evidence: list[EvidenceItem], sensitivity: str) -> tuple[Verdict, 
         expl = f"Sources conflict ({S:.2f} supporting vs {R:.2f} refuting); no single confidence is meaningful."
         unknowns.append("Credible sources disagree.")
     return verdict, conf, expl, weights, unknowns
+
+
+def evaluate_image_authenticity(
+    metadata: dict,
+    forensic_risk: str,
+    visual_auth: VisualAuthAssessment | None,
+    visual_anomalies: list[str],
+    provenance_finding: str,
+) -> tuple[str, bool | None, float | None]:
+    """Deterministically assess whether the image appears real, manipulated, AI-generated, or inconclusive."""
+    ai_meta = bool(metadata.get("ai_metadata_detected"))
+    editor_meta = bool(metadata.get("editing_software_detected"))
+    has_camera_exif = bool(metadata.get("camera_make") or metadata.get("camera_model"))
+
+    if ai_meta or provenance_finding == "debunked_ai":
+        conf = 0.92 if (ai_meta and (visual_auth == VisualAuthAssessment.likely_ai_generated or provenance_finding == "debunked_ai")) else 0.85
+        return "Likely AI-Generated", False, conf
+
+    if provenance_finding == "debunked_manipulated":
+        return "Likely Manipulated", False, 0.85
+
+    if visual_auth == VisualAuthAssessment.likely_ai_generated:
+        conf = 0.78 if (len(visual_anomalies) >= 2 or not metadata.get("has_exif")) else 0.65
+        return "Likely AI-Generated", False, conf
+
+    if visual_auth == VisualAuthAssessment.suspicious_editing or (editor_meta and forensic_risk == "elevated"):
+        conf = 0.76 if (editor_meta or forensic_risk in ("elevated", "moderate")) else 0.62
+        return "Likely Manipulated", False, conf
+
+    if provenance_finding == "confirmed_authentic":
+        return "Likely Authentic", True, 0.82
+
+    if visual_auth == VisualAuthAssessment.likely_authentic:
+        if forensic_risk == "elevated":
+            return "Inconclusive", None, 0.45
+        conf = 0.74 if has_camera_exif else 0.62
+        return "Likely Authentic", True, conf
+
+    return "Inconclusive", None, None
+
+
+def fuse_multimodal(
+    image_analysis: ImageAnalysis,
+    claim_results: list[ClaimResult],
+    claim_overall: Verdict,
+    has_user_claim: bool,
+) -> tuple[Verdict, MultimodalSummary]:
+    """Deterministically fuse image authenticity + image-claim alignment + claim factuality."""
+    img_v = image_analysis.image_verdict
+    img_real = image_analysis.image_is_real
+    visual = image_analysis.visual
+    alignment = visual.claim_alignment if visual else ClaimImageAlignment.no_claim
+    prov = image_analysis.provenance_finding
+
+    # If provenance search explicitly revealed out-of-context reuse, elevate alignment mismatch
+    if prov == "debunked_out_of_context" and has_user_claim:
+        alignment = ClaimImageAlignment.mismatched_context
+
+    align_label = ALIGNMENT_LABELS.get(alignment, "Unclear")
+    claim_v_str = claim_overall.value if (has_user_claim or claim_results) else "No Claim Provided"
+
+    # Determine claim_is_real tri-state
+    claim_is_real: bool | None
+    if not (has_user_claim or claim_results):
+        claim_is_real = None
+    elif claim_overall in (Verdict.true, Verdict.mostly_true):
+        claim_is_real = True
+    elif claim_overall in (Verdict.false, Verdict.mostly_false, Verdict.satire):
+        claim_is_real = False
+    else:
+        claim_is_real = None
+
+    # If the image directly contradicts the claim and web evidence was inconclusive, mark claim false/misleading
+    if has_user_claim and alignment == ClaimImageAlignment.contradicts_image and claim_is_real is None:
+        claim_is_real = False
+        claim_v_str = "False (Contradicted by Image)"
+    elif has_user_claim and alignment == ClaimImageAlignment.mismatched_context and claim_is_real is not False:
+        claim_is_real = False
+        if claim_overall in (Verdict.unverifiable, Verdict.not_checkworthy):
+            claim_v_str = "Mixed/Misleading Context"
+
+    # Fuse into overall Verdict
+    if img_v == "Likely AI-Generated":
+        overall = Verdict.ai_generated
+    elif img_v == "Likely Manipulated":
+        overall = Verdict.manipulated
+    elif has_user_claim and alignment == ClaimImageAlignment.contradicts_image:
+        overall = Verdict.false
+    elif has_user_claim and alignment == ClaimImageAlignment.mismatched_context:
+        overall = Verdict.false if claim_overall in (Verdict.false, Verdict.mostly_false) else Verdict.mixed
+    elif has_user_claim or claim_results:
+        if claim_overall in (Verdict.true, Verdict.mostly_true) and img_real is True and alignment == ClaimImageAlignment.consistent:
+            overall = claim_overall
+        elif claim_overall in (Verdict.false, Verdict.mostly_false):
+            overall = claim_overall
+        elif claim_overall in (Verdict.mixed, Verdict.disputed, Verdict.satire):
+            overall = claim_overall
+        elif claim_overall in (Verdict.true, Verdict.mostly_true):
+            overall = Verdict.mostly_true if alignment == ClaimImageAlignment.partially_consistent else claim_overall
+        else:
+            overall = Verdict.unverifiable
+    else:
+        # Image-only check with no claims
+        overall = Verdict.unverifiable if img_real is None else Verdict.mostly_true
+
+    # Compose clear, honest human summary
+    parts: list[str] = []
+    if img_v == "Likely AI-Generated":
+        parts.append("Image assessment: Likely AI-Generated (synthetic media signals detected).")
+    elif img_v == "Likely Manipulated":
+        parts.append("Image assessment: Likely Manipulated (editing or forensic anomalies detected).")
+    elif img_v == "Likely Authentic":
+        parts.append("Image assessment: Likely Authentic (no clear AI-generation or manipulation signals found; note that authentic photos can still be miscaptioned).")
+    else:
+        parts.append("Image assessment: Inconclusive (forensic and visual cues are insufficient to confirm or refute authenticity).")
+
+    if has_user_claim:
+        if alignment == ClaimImageAlignment.contradicts_image:
+            parts.append("Image–Claim match: The uploaded image visibly contradicts the submitted claim.")
+        elif alignment == ClaimImageAlignment.mismatched_context:
+            parts.append("Image–Claim match: The image appears out of context or mismatched with the submitted claim.")
+        elif alignment == ClaimImageAlignment.consistent:
+            parts.append("Image–Claim match: What is visible in the image is consistent with the claim.")
+        elif alignment == ClaimImageAlignment.partially_consistent:
+            parts.append("Image–Claim match: Only partially verifiable from the image alone; external evidence is needed for details like date/location.")
+        parts.append(f"Claim verification: {claim_v_str}.")
+
+    summary = MultimodalSummary(
+        image_verdict=img_v,
+        image_is_real=img_real,
+        claim_verdict=claim_v_str,
+        claim_is_real=claim_is_real,
+        image_claim_match=align_label,
+        summary=" ".join(parts),
+    )
+    return overall, summary
 
 
 def how_to_verify(claim_text: str, evidence: list[EvidenceItem], sensitivity: str) -> list[str]:

@@ -198,3 +198,31 @@ async def gdelt(c: httpx.AsyncClient, query: str, notes: SourceNotes) -> list[Se
     return [SearchHit(a["url"], a.get("title", ""), a.get("domain", ""),
                       (a.get("seendate") or "")[:8] and f"{a['seendate'][:4]}-{a['seendate'][4:6]}-{a['seendate'][6:8]}",
                       a.get("title", ""), "news", query) for a in arts if a.get("url")]
+
+
+async def google_vision_reverse(c: httpx.AsyncClient, s: Settings, image_bytes: bytes,
+                                notes: SourceNotes) -> list[SearchHit]:
+    """Optional reverse image search via Google Cloud Vision Web Detection (requires GOOGLE_VISION_API_KEY)."""
+    if not s.google_vision_api_key:
+        return []
+    import base64
+    try:
+        r = await c.post(
+            "https://vision.googleapis.com/v1/images:annotate",
+            params={"key": s.google_vision_api_key},
+            json={"requests": [{"image": {"content": base64.b64encode(image_bytes).decode()},
+                                "features": [{"type": "WEB_DETECTION", "maxResults": 10}]}]},
+        )
+        r.raise_for_status()
+        wd = r.json().get("responses", [{}])[0].get("webDetection", {})
+    except (httpx.HTTPError, ValueError, KeyError, IndexError) as e:
+        notes.add(f"Google Vision reverse image search failed: {type(e).__name__}")
+        return []
+    out: list[SearchHit] = []
+    for pg in wd.get("pagesWithMatchingImages", [])[:8]:
+        url = pg.get("url")
+        if url:
+            out.append(SearchHit(url, pg.get("pageTitle") or url, "", None,
+                                 f"Exact/partial visual match found on page: {pg.get('pageTitle') or url}", "web", "reverse_image"))
+    return out
+
