@@ -103,9 +103,21 @@ export function ResultView({
   defaultImageView?: "original" | "ela" | "noise";
 }) {
   const [reason, setReason] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const verdict = result.overall_verdict ?? "Unverifiable";
   const share = typeof window !== "undefined" ? window.location.href : "";
   const ms = result.multimodal_summary;
+
+  async function handleDownloadPdf() {
+    if (exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      const { downloadPdfReport } = await import("@/lib/pdfReport");
+      await downloadPdfReport(result);
+    } finally {
+      setExportingPdf(false);
+    }
+  }
 
   return (
     <div className="pt-10">
@@ -135,6 +147,13 @@ export function ResultView({
 
       <div className="mt-6 flex flex-wrap gap-3 text-sm">
         <button className="glass rounded-md px-3 py-2" aria-pressed={reason} onClick={() => setReason(!reason)}>{reason ? "Hide" : "Show"} the reasoning</button>
+        <button
+          className="rounded-md bg-signal px-3.5 py-2 font-medium text-ink disabled:opacity-50"
+          disabled={exportingPdf}
+          onClick={handleDownloadPdf}
+        >
+          {exportingPdf ? "Generating PDF…" : "↓ Download PDF Report"}
+        </button>
         <button className="glass rounded-md px-3 py-2" onClick={() => navigator.clipboard?.writeText(share)}>Copy link</button>
         <button className="glass rounded-md px-3 py-2" onClick={() => {
           const b = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
