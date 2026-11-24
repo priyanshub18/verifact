@@ -67,3 +67,22 @@ def test_noise_endpoint():
 def test_health_reports_model_state_honestly():
     h = client.get("/health").json()
     assert set(h["models"]) == {"rerank", "nli"} and all(m["loaded"] is False for m in h["models"].values())
+    assert h["endpoints"]["/forensics/analyze"] == "ready"
+
+
+def test_unified_analyze_endpoint_and_ai_metadata():
+    from PIL import PngImagePlugin
+    img = _scene()
+    info = PngImagePlugin.PngInfo()
+    info.add_text("parameters", "a photo\nNegative prompt: bad\nSteps: 25, Sampler: Euler a")
+    buf = io.BytesIO()
+    img.save(buf, "PNG", pnginfo=info)
+    r = client.post("/forensics/analyze", files={"file": ("ai.png", buf.getvalue(), "image/png")})
+    assert r.status_code == 200
+    j = r.json()
+    assert j["metadata"]["ai_metadata_detected"] is True
+    assert j["forensic_risk"] == "high_metadata_ai"
+    assert j["ela"]["heatmap_png_base64"]
+    assert j["noise"]["heatmap_png_base64"]
+    assert "high_freq_ratio" in j["spectral"]["stats"]
+

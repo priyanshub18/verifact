@@ -3,13 +3,20 @@ from pydantic import BaseModel, Field
 
 from app import forensics, registry
 
-app = FastAPI(title="VeriFact ML service", version="0.1.0")
+app = FastAPI(title="VeriFact ML service", version="0.2.0")
 
 
 @app.get("/health")
 def health():
     return {"ok": True, **registry.status(),
-            "endpoints": {"/rerank": "needs torch", "/nli": "needs torch", "/forensics/ela": "ready", "/forensics/noise": "ready"}}
+            "endpoints": {
+                "/rerank": "needs torch",
+                "/nli": "needs torch",
+                "/forensics/analyze": "ready",
+                "/forensics/metadata": "ready",
+                "/forensics/ela": "ready",
+                "/forensics/noise": "ready",
+            }}
 
 
 class RerankReq(BaseModel):
@@ -55,8 +62,23 @@ def nli(req: NLIReq):
 
 
 async def _read(file: UploadFile) -> bytes:
-    data = await file.read(forensics.MAX_BYTES + 1)
-    return data
+    return await file.read(forensics.MAX_BYTES + 1)
+
+
+@app.post("/forensics/analyze")
+async def analyze(file: UploadFile = File(...), quality: int = 90):
+    try:
+        return forensics.analyze_all(await _read(file), ela_quality=max(50, min(98, quality)))
+    except forensics.BadImage as e:
+        raise HTTPException(422, str(e)) from e
+
+
+@app.post("/forensics/metadata")
+async def metadata(file: UploadFile = File(...)):
+    try:
+        return forensics.inspect_metadata(await _read(file))
+    except forensics.BadImage as e:
+        raise HTTPException(422, str(e)) from e
 
 
 @app.post("/forensics/ela")
